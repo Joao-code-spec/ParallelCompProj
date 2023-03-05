@@ -1,8 +1,22 @@
 #include <stdio.h>
+#include "nqueue/queue.h"
+#include "nqueue/queue.hpp"
 #include <stdlib.h>
+#include <iostream> 
+#include <list>
+using namespace std;
 int maxVal;
+double lb(){
+    //TODO
+    return 0;
+}
 int tspbb(double distances, int nCities, double bestTourCost){
-    
+    list<int> tour = {0};
+    double lowerBound = lb();
+    priority_queue_t * queue = queue_create(tour,0,lowerBound,1,0);
+    while(queue != NULL){
+        
+    }
 }
 int main(int argc, char *argv[]){
     FILE * file;
