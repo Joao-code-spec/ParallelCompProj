@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 int maxVal;
+int tspbb(double distances, int nCities, double bestTourCost){
+    
+}
 int main(int argc, char *argv[]){
     FILE * file;
     int totalCitys;
