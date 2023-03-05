@@ -6,6 +6,15 @@
 #include <list>
 using namespace std;
 int maxVal;
+typedef struct
+{
+	list<int> tour;
+    double cost;
+	double lb;
+    int lenght;
+    int currentCity;
+} qElement;
+
 double lb(){
     //TODO
     return 0;
@@ -13,9 +22,12 @@ double lb(){
 int tspbb(double distances, int nCities, double bestTourCost){
     list<int> tour = {0};
     double lowerBound = lb();
-    priority_queue_t * queue = queue_create(tour,0,lowerBound,1,0);
-    while(queue != NULL){
-        
+    qElement e={tour,0,lowerBound,1,0};
+    PriorityQueue<qElement>  queue;
+
+    qElement poppedQueue;
+    while(queue.empty() != true){
+        poppedQueue=queue.pop();
     }
 }
 int main(int argc, char *argv[]){
