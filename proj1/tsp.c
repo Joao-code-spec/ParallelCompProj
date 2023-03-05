@@ -11,7 +11,7 @@ int main(int argc, char *argv[]){
        return 1;
     }
     fscanf(file,"%d %d", &totalCitys, &totalRoads);
-    int roadMatrix [totalCitys][totalCitys];
+    double roadMatrix [totalCitys][totalCitys];
     //printf("%d %d\n",totalCitys,totalRoads);
     while(fscanf(file,"%d %d %d", &i1, &i2, &distance) != EOF){
         roadMatrix[i1][i2]=distance;
