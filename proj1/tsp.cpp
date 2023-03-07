@@ -5,6 +5,8 @@
 #include <iostream>
 #include <vector>
 #include <list>
+#include <cmath>
+#include <algorithm>
 using namespace std;
 int maxVal;
 typedef struct
@@ -22,14 +24,55 @@ typedef struct
 	double btCost;
 } bestTaC;
 
-double lb(){
-    //TODO
-    return 0;
+double lb(std::vector<std::vector<double>> distances, int nCities) {
+    double lb = 0;
+    // calculate the sum of the two smallest distances for each city
+    for(int i = 0; i < nCities; i++) {
+        double min1 = std::numeric_limits<double>::max();
+        double min2 = std::numeric_limits<double>::max();
+        for(int j = 0; j < nCities; j++) {
+            if(i != j) {
+                double dist = distances[i][j];
+                if(dist < min1) {
+                    min2 = min1;
+                    min1 = dist;
+                } else if(dist < min2) {
+                    min2 = dist;
+                }
+            }
+        }
+        lb += min1 + min2;
+    }
+    // divide the result by 2 and round up to the nearest integer
+    lb = std::ceil(lb / 2);
+    return lb;
 }
-double updateBound(){
-    //TODO
-    return 0;
+
+double updateBound(std::list<int> tour, double cost, int currentCity, int remainingCities, std::vector<std::vector<double>> distances) {
+    double lb = cost;
+    // Calculate the sum of the two smallest distances for each unvisited city
+    for(int i = 0; i < distances.size(); i++) {
+        if(std::find(tour.begin(), tour.end(), i) == tour.end()) {
+            double min1 = std::numeric_limits<double>::max();
+            double min2 = std::numeric_limits<double>::max();
+            for(int j = 0; j < distances.size(); j++) {
+                if(i != j && std::find(tour.begin(), tour.end(), j) == tour.end()) {
+                    double dist = distances[i][j];
+                    if(dist < min1) {
+                        min2 = min1;
+                        min1 = dist;
+                    } else if(dist < min2) {    
+                        min2 = dist;
+                    }
+                }
+            }
+            lb += min1 + min2;
+        }
+    }
+
+    return lb / 2;
 }
+
 bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double bestTourCost){
     list<int> tour = {0};
     double lowerBound = lb();
@@ -67,7 +110,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                     }
                 }
                 if(0 < v && !contains){
-                    lowerBound=updateBound();
+                    lowerBound=updateBound(e.tour, e.cost, e.currentCity, nCities - e.lenght, distances);
                     if(lowerBound>bestTourCost){
                         i++;
                         continue;
