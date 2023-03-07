@@ -7,6 +7,8 @@
 #include <list>
 #include <cmath>
 #include <algorithm>
+#include <omp.h>
+
 using namespace std;
 int maxVal;
 typedef struct
@@ -75,7 +77,7 @@ double updateBound(std::list<int> tour, double cost, int currentCity, int remain
 
 bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double bestTourCost){
     list<int> tour = {0};
-    double lowerBound = lb();
+    double lowerBound = lb(distances, nCities);
     double d;
     qElement e={tour,0,lowerBound,1,0};
     PriorityQueue<qElement>  queue;
@@ -93,7 +95,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
             lowerBound = poppedE.cost + distances[poppedE.currentCity][0];
             if(lowerBound<bestTourCost){
                 tour=poppedE.tour;
-                tour.push_front(0);
+                tour.push_back(0);
                 returnable.bt=tour;
                 returnable.btCost=lowerBound;
             }
@@ -117,7 +119,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                     }
                     int i1 =poppedE.lenght + 1;
                     tour=poppedE.tour;
-                    tour.push_front(i);
+                    tour.push_back(i);
                     d = poppedE.cost + distances[poppedE.currentCity][i];
 
                     qElement next = {tour,d,lowerBound,i1,v};
@@ -133,10 +135,12 @@ int main(int argc, char *argv[]){
     FILE * file;
     int totalCitys;
     int totalRoads;
-    int i1, i2, distance;
+    int i1, i2, distance, i3;
+    double exec_time;
+    bestTaC t;
     if ((file = fopen(argv[1],"r")) == NULL){
        printf("Error! file doesnt exist \n");
-       return 1;
+       return 0;
     }
     fscanf(file,"%d %d", &totalCitys, &totalRoads);
     //TODO check if broken
@@ -151,5 +155,21 @@ int main(int argc, char *argv[]){
     fclose(file);
     maxVal = strtol(argv[2], NULL, 10);;
     //printf("%d\n",maxVal);
-    return 0;
+    exec_time = -omp_get_wtime();
+
+    t=tspbb(roadMatrix,totalCitys,maxVal);
+
+    exec_time += omp_get_wtime();
+    fprintf(stderr, "%.1fs\n", exec_time);
+
+    if(t.btCost>=maxVal){
+        std::cout << "NO SOLUTION\n" << std::endl;
+        return 0;
+    }
+    for(int iiii : t.bt){
+        printf("%d ",iiii);
+    }
+    printf("\n");
+    printf("%d\n",t.btCost);
+    return 1;
 }
