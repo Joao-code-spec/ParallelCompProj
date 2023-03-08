@@ -19,6 +19,7 @@ typedef struct
     int lenght;
     int currentCity;
 } qElement;
+struct cmp_op { bool operator()(qElement const&  left,qElement const& right) { return left.bound > right.bound; } };
 
 typedef struct
 {
@@ -53,11 +54,11 @@ double lb(std::vector<std::vector<double>> distances, int nCities) {
 double updateBound(std::list<int> tour, double cost, int currentCity, int remainingCities, std::vector<std::vector<double>> distances) {
     double lb = cost;
     // Calculate the sum of the two smallest distances for each unvisited city
-    for(int i = 0; i < distances.size(); i++) {
+    for(int i = 0; i < (int) distances.size(); i++) {
         if(std::find(tour.begin(), tour.end(), i) == tour.end()) {
             double min1 = std::numeric_limits<double>::max();
             double min2 = std::numeric_limits<double>::max();
-            for(int j = 0; j < distances.size(); j++) {
+            for(int j = 0; j < (int) distances.size(); j++) {
                 if(i != j && std::find(tour.begin(), tour.end(), j) == tour.end()) {
                     double dist = distances[i][j];
                     if(dist < min1) {
@@ -80,7 +81,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
     double lowerBound = lb(distances, nCities);
     double d;
     qElement e={tour,0,lowerBound,1,0};
-    PriorityQueue<qElement>  queue;
+    PriorityQueue<qElement,cmp_op>  queue;
     qElement poppedE;
     bestTaC returnable= {{0},9999999999};
     while(queue.empty() != true){
@@ -107,7 +108,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                 bool contains=false;
                 for(int city : poppedE.tour){
                     if(city==i){
-                        contains==true;
+                        contains=true;
                         break;
                     }
                 }
@@ -117,12 +118,12 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                         i++;
                         continue;
                     }
-                    int i1 =poppedE.lenght + 1;
+                    int newLenght =poppedE.lenght + 1;
                     tour=poppedE.tour;
                     tour.push_back(i);
                     d = poppedE.cost + distances[poppedE.currentCity][i];
 
-                    qElement next = {tour,d,lowerBound,i1,v};
+                    qElement next = {tour,d,lowerBound,newLenght,i};
                     queue.push(next);
                 }
                 i++;
@@ -135,8 +136,8 @@ int main(int argc, char *argv[]){
     FILE * file;
     int totalCitys;
     int totalRoads;
-    int i1, i2, distance, i3;
-    double exec_time;
+    int i1, i2;
+    double exec_time, distance;
     bestTaC t;
     if ((file = fopen(argv[1],"r")) == NULL){
        printf("Error! file doesnt exist \n");
@@ -147,7 +148,7 @@ int main(int argc, char *argv[]){
     std::vector<std::vector<double>> roadMatrix(totalCitys, std::vector<double>(totalCitys));
     //double roadMatrix [totalCitys][totalCitys];
     //printf("%d %d\n",totalCitys,totalRoads);
-    while(fscanf(file,"%d %d %d", &i1, &i2, &distance) != EOF){
+    while(fscanf(file,"%d %d %lf", &i1, &i2, &distance) != EOF){
         roadMatrix[i1][i2]=distance;
         roadMatrix[i2][i1]=distance;
         //printf("%d %d %d\n", i1, i2, distance);
@@ -170,6 +171,6 @@ int main(int argc, char *argv[]){
         printf("%d ",iiii);
     }
     printf("\n");
-    printf("%d\n",t.btCost);
+    printf("%f\n",t.btCost);
     return 1;
 }
