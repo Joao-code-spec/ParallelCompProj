@@ -1,7 +1,7 @@
 # compiler
 CC=g++
 # compiler flags
-CFLAGS=-c -Wall
+CFLAGS=-c -Wall -std=c++17 -fopenmp
 # linker flags
 LDFLAGS=
 # source files
@@ -14,7 +14,7 @@ EXECUTABLE=tsp
 all: $(SOURCES) $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJECTS)
-	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
+	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJECTS) -o $@
 
 .cpp.o:
 	$(CC) $(CFLAGS) $< -o $@

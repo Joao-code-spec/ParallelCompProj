@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include "nqueue/queue.h"
 #include "nqueue/queue.hpp"
 #include <stdlib.h>
 #include <iostream>
