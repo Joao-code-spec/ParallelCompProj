@@ -81,11 +81,14 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
     double d;
     qElement e={tour,0,lowerBound,1,0};
     PriorityQueue<qElement,cmp_op>  queue;
+    queue.push(e);
     qElement poppedE;
-    bestTaC returnable= {{0},9999999999};
+    bestTaC returnable= {{0},bestTourCost};
     while(queue.empty() != true){
+        //printf("IINN \n");
         poppedE=queue.pop();
         if(poppedE.bound>=bestTourCost){
+            //printf("IINN \n");
             //poppedE.tour.push_front(poppedE.currentCity);
             returnable={poppedE.tour, bestTourCost};
             return returnable;
