@@ -50,13 +50,13 @@ double lb(std::vector<std::vector<double>> distances, int nCities) {
     return lb;
 }
 
-double updateBound(std::list<int> tour, double cost, int currentCity, int remainingCities, std::vector<std::vector<double>> distances, int toCity) {
+double updateBound(double cost, int currentCity, std::vector<std::vector<double>> distances, int toCity) {
     double lb = cost;
     double cf,ct,cft;
-    double min1f = std::numeric_limits<double>::max();
-    double min2f = std::numeric_limits<double>::max();
-    double min1t = std::numeric_limits<double>::max();
-    double min2t = std::numeric_limits<double>::max();
+    double min1f = INFINITY;
+    double min2f = INFINITY;
+    double min1t = INFINITY;
+    double min2t = INFINITY;
     // Calculates mins for current city
     for(int akf = 0; akf < (int) distances[currentCity].size();akf++){
         double dist = distances[currentCity][akf];
@@ -137,7 +137,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                     }
                 }
                 if( v != INFINITY && !contains){
-                    lowerBound=updateBound(poppedE.tour, poppedE.cost, poppedE.currentCity, nCities - poppedE.lenght, distances, i);
+                    lowerBound=updateBound(poppedE.cost, poppedE.currentCity, distances, i);
                     if(lowerBound>bestTourCost){
                         i++;
                         continue;
