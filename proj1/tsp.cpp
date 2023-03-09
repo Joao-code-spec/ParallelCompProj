@@ -50,29 +50,50 @@ double lb(std::vector<std::vector<double>> distances, int nCities) {
     return lb;
 }
 
-double updateBound(std::list<int> tour, double cost, int currentCity, int remainingCities, std::vector<std::vector<double>> distances) {
+double updateBound(std::list<int> tour, double cost, int currentCity, int remainingCities, std::vector<std::vector<double>> distances, int toCity) {
     double lb = cost;
-    // Calculate the sum of the two smallest distances for each unvisited city
-    for(int i = 0; i < (int) distances.size(); i++) {
-        if(std::find(tour.begin(), tour.end(), i) == tour.end()) {
-            double min1 = std::numeric_limits<double>::max();
-            double min2 = std::numeric_limits<double>::max();
-            for(int j = 0; j < (int) distances.size(); j++) {
-                if(i != j && std::find(tour.begin(), tour.end(), j) == tour.end()) {
-                    double dist = distances[i][j];
-                    if(dist < min1) {
-                        min2 = min1;
-                        min1 = dist;
-                    } else if(dist < min2) {    
-                        min2 = dist;
-                    }
-                }
-            }
-            lb += min1 + min2;
+    double cf,ct,cft;
+    double min1f = std::numeric_limits<double>::max();
+    double min2f = std::numeric_limits<double>::max();
+    double min1t = std::numeric_limits<double>::max();
+    double min2t = std::numeric_limits<double>::max();
+    // Calculates mins for current city
+    for(int akf = 0; akf < (int) distances[currentCity].size();akf++){
+        double dist = distances[currentCity][akf];
+        if(dist < min1f) {
+            min2f = min1f;
+            min1f = dist;
+        } else if(dist < min2f) {    
+            min2f = dist;
         }
-    }
 
-    return lb / 2;
+    }
+    //calculates mins for toCity
+    for(int akf = 0; akf < (int) distances[toCity].size();akf++){
+        double dist = distances[toCity][akf];
+        if(dist < min1f) {
+            min2t = min1t;
+            min1t = dist;
+        } else if(dist < min2t) {    
+            min2t = dist;
+        }
+
+    }
+    if(distances[currentCity][toCity]>=min2f){
+        cf=min2f;
+    }
+    else{
+        cf=min1f;
+    }
+    if(distances[currentCity][toCity]>=min2t){
+        ct=min2t;
+    }
+    else{
+        ct=min1t;
+    }
+    cft=cf +ct;
+    cft= cft /2;
+    return lb + distances[currentCity][toCity] - cft;
 }
 
 bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double bestTourCost){
@@ -101,6 +122,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                 tour.push_back(0);
                 returnable.bt=tour;
                 returnable.btCost=lowerBound;
+                bestTourCost=lowerBound;
             }
         }
         else{
@@ -114,8 +136,8 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                         break;
                     }
                 }
-                if(0 < v && !contains){
-                    lowerBound=updateBound(e.tour, e.cost, e.currentCity, nCities - e.lenght, distances);
+                if( v != INFINITY && !contains){
+                    lowerBound=updateBound(poppedE.tour, poppedE.cost, poppedE.currentCity, nCities - poppedE.lenght, distances, i);
                     if(lowerBound>bestTourCost){
                         i++;
                         continue;
@@ -147,7 +169,7 @@ int main(int argc, char *argv[]){
     }
     fscanf(file,"%d %d", &totalCitys, &totalRoads);
     //TODO check if broken
-    std::vector<std::vector<double>> roadMatrix(totalCitys, std::vector<double>(totalCitys));
+    std::vector<std::vector<double>> roadMatrix(totalCitys, std::vector<double>(totalCitys,INFINITY));
     //double roadMatrix [totalCitys][totalCitys];
     //printf("%d %d\n",totalCitys,totalRoads);
     while(fscanf(file,"%d %d %lf", &i1, &i2, &distance) != EOF){
