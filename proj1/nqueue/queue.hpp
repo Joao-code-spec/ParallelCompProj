@@ -32,7 +32,7 @@
 // and then pass it to the template parameters of the priority queue:
 // PriorityQueue<int, cmp_op> queue;
 //
-template<typename T, typename Compare = std::greater<T>>
+template<typename T, typename Compare>
 class PriorityQueue
 {
     private:
