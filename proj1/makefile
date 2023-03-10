@@ -1,7 +1,7 @@
 # compiler
 CC=g++
 # compiler flags
-CFLAGS=-Wall -std=c++17 -fopenmp
+CFLAGS=-o3 -Wall -std=c++17 -fopenmp
 # linker flags
 LDFLAGS=
 # source files
