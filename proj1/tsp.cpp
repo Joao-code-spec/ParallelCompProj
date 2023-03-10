@@ -46,7 +46,7 @@ double lb(std::vector<std::vector<double>> distances, int nCities) {
         lb += min1 + min2;
     }
     // divide the result by 2 and round up to the nearest integer
-    lb = std::ceil(lb / 2);
+    lb = lb / 2;
     return lb;
 }
 
@@ -71,7 +71,7 @@ double updateBound(double cost, int currentCity, std::vector<double> distanceCur
     //calculates mins for toCity
     for(int akf = 0; akf < (int) distanceTo.size();akf++){
         double dist = distanceTo[akf];
-        if(dist < min1f) {
+        if(dist < min1t) {
             min2t = min1t;
             min1t = dist;
         } else if(dist < min2t) {    
@@ -107,6 +107,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
     bestTaC returnable= {{0},bestTourCost};
     while(queue.empty() != true){
         poppedE=queue.pop();
+        //printf("POPPED %d LB %.1f cost %.1f \n",poppedE.currentCity,poppedE.bound,poppedE.cost);
         if(poppedE.bound>=bestTourCost){
             
             //poppedE.tour.push_front(poppedE.currentCity);
@@ -137,7 +138,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                     }
                 }
                 if( v != INFINITY && !contains){
-                    lowerBound=updateBound(poppedE.cost, poppedE.currentCity, distances[poppedE.currentCity],distances[i],distances[poppedE.currentCity][i]);
+                    lowerBound=updateBound(poppedE.bound, poppedE.currentCity, distances[poppedE.currentCity],distances[i],distances[poppedE.currentCity][i]);
                     if(lowerBound>bestTourCost){
                         i++;
                         continue;
@@ -148,6 +149,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                     d = poppedE.cost + distances[poppedE.currentCity][i];
 
                     qElement next = {tour,d,lowerBound,newLenght,i};
+                    //printf("pushed %d LB %.2f cost %.2f \n",next.currentCity,next.bound,next.cost);
                     queue.push(next);
                 }
                 i++;
