@@ -182,12 +182,12 @@ int main(int argc, char *argv[]){
     fclose(file);
     maxVal = strtol(argv[2], NULL, 10);;
     //printf("%d\n",maxVal);
-    exec_time = -omp_get_wtime();
+    //exec_time = -omp_get_wtime();
 
     t=tspbb(roadMatrix,totalCitys,maxVal);
 
-    exec_time += omp_get_wtime();
-    fprintf(stderr, "%.1fs\n", exec_time);
+    //exec_time += omp_get_wtime();
+    //fprintf(stderr, "%.1fs\n", exec_time);
 
     if(t.btCost>=maxVal){
         std::cout << "NO SOLUTION\n" << std::endl;
