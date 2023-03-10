@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "nqueue/queue.hpp"
+#include "queue.hpp"
 #include <stdlib.h>
 #include <iostream>
 #include <vector>
@@ -50,7 +50,7 @@ double lb(std::vector<std::vector<double>> distances, int nCities) {
     return lb;
 }
 
-double updateBound(double cost, int currentCity, std::vector<double> distancesCurrent, std::vector<double> distancesTo,int toCity,double dct) {
+double updateBound(double cost, int currentCity, std::vector<std::vector<double>> distances, int toCity) {
     double lb = cost;
     double cf,ct,cft;
     double min1f = INFINITY;
@@ -58,8 +58,8 @@ double updateBound(double cost, int currentCity, std::vector<double> distancesCu
     double min1t = INFINITY;
     double min2t = INFINITY;
     // Calculates mins for current city
-    for(int akf = 0; akf < (int) distancesCurrent.size();akf++){
-        double dist = distancesCurrent[akf];
+    for(int akf = 0; akf < (int) distances[currentCity].size();akf++){
+        double dist = distances[currentCity][akf];
         if(dist < min1f) {
             min2f = min1f;
             min1f = dist;
@@ -69,8 +69,8 @@ double updateBound(double cost, int currentCity, std::vector<double> distancesCu
 
     }
     //calculates mins for toCity
-    for(int akf = 0; akf < (int) distancesTo.size();akf++){
-        double dist = distancesTo[akf];
+    for(int akf = 0; akf < (int) distances[toCity].size();akf++){
+        double dist = distances[toCity][akf];
         if(dist < min1f) {
             min2t = min1t;
             min1t = dist;
@@ -79,13 +79,13 @@ double updateBound(double cost, int currentCity, std::vector<double> distancesCu
         }
 
     }
-    if(dct>=min2f){
+    if(distances[currentCity][toCity]>=min2f){
         cf=min2f;
     }
     else{
         cf=min1f;
     }
-    if(dct>=min2t){
+    if(distances[currentCity][toCity]>=min2t){
         ct=min2t;
     }
     else{
@@ -93,7 +93,7 @@ double updateBound(double cost, int currentCity, std::vector<double> distancesCu
     }
     cft=cf +ct;
     cft= cft /2;
-    return lb + dct - cft;
+    return lb + distances[currentCity][toCity] - cft;
 }
 
 bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double bestTourCost){
@@ -106,21 +106,21 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
     qElement poppedE;
     bestTaC returnable= {{0},bestTourCost};
     while(queue.empty() != true){
-        //printf("IINN \n");
         poppedE=queue.pop();
         if(poppedE.bound>=bestTourCost){
-            //printf("IINN \n");
+            
             //poppedE.tour.push_front(poppedE.currentCity);
-            returnable={poppedE.tour, bestTourCost};
+            returnable={returnable.bt, bestTourCost};
             return returnable;
         }
         if(poppedE.lenght==nCities){
             //re-used lowerBound because it is a double this has nothing to do with lowerbound
+            // if Cost + Distances(Node, 0) < BestT ourCost then
             lowerBound = poppedE.cost + distances[poppedE.currentCity][0];
             if(lowerBound<bestTourCost){
                 tour=poppedE.tour;
                 tour.push_back(0);
-                returnable.bt=tour;
+              	returnable.bt=tour;
                 returnable.btCost=lowerBound;
                 bestTourCost=lowerBound;
             }
@@ -137,7 +137,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                     }
                 }
                 if( v != INFINITY && !contains){
-                    lowerBound=updateBound(poppedE.cost, poppedE.currentCity, distances[poppedE.currentCity], distances[i],distances[poppedE.currentCity][i],i);
+                    lowerBound=updateBound(poppedE.cost, poppedE.currentCity, distances, i);
                     if(lowerBound>bestTourCost){
                         i++;
                         continue;
@@ -175,7 +175,7 @@ int main(int argc, char *argv[]){
     while(fscanf(file,"%d %d %lf", &i1, &i2, &distance) != EOF){
         roadMatrix[i1][i2]=distance;
         roadMatrix[i2][i1]=distance;
-        //printf("%d %d %d\n", i1, i2, distance);
+        //printf("%d %d %lf\n", i1, i2, distance);
     }
     fclose(file);
     maxVal = strtol(argv[2], NULL, 10);;
