@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "queue.hpp"
+#include "nqueue/queue.hpp"
 #include <stdlib.h>
 #include <iostream>
 #include <vector>
@@ -50,7 +50,7 @@ double lb(std::vector<std::vector<double>> distances, int nCities) {
     return lb;
 }
 
-double updateBound(double cost, int currentCity, std::vector<std::vector<double>> distances, int toCity) {
+double updateBound(double cost, int currentCity, std::vector<double> distanceCurrent,std::vector<double> distanceTo, double dct) {
     double lb = cost;
     double cf,ct,cft;
     double min1f = INFINITY;
@@ -58,8 +58,8 @@ double updateBound(double cost, int currentCity, std::vector<std::vector<double>
     double min1t = INFINITY;
     double min2t = INFINITY;
     // Calculates mins for current city
-    for(int akf = 0; akf < (int) distances[currentCity].size();akf++){
-        double dist = distances[currentCity][akf];
+    for(int akf = 0; akf < (int) distanceCurrent.size();akf++){
+        double dist = distanceCurrent[akf];
         if(dist < min1f) {
             min2f = min1f;
             min1f = dist;
@@ -69,8 +69,8 @@ double updateBound(double cost, int currentCity, std::vector<std::vector<double>
 
     }
     //calculates mins for toCity
-    for(int akf = 0; akf < (int) distances[toCity].size();akf++){
-        double dist = distances[toCity][akf];
+    for(int akf = 0; akf < (int) distanceTo.size();akf++){
+        double dist = distanceTo[akf];
         if(dist < min1f) {
             min2t = min1t;
             min1t = dist;
@@ -79,13 +79,13 @@ double updateBound(double cost, int currentCity, std::vector<std::vector<double>
         }
 
     }
-    if(distances[currentCity][toCity]>=min2f){
+    if(dct>=min2f){
         cf=min2f;
     }
     else{
         cf=min1f;
     }
-    if(distances[currentCity][toCity]>=min2t){
+    if(dct>=min2t){
         ct=min2t;
     }
     else{
@@ -93,7 +93,7 @@ double updateBound(double cost, int currentCity, std::vector<std::vector<double>
     }
     cft=cf +ct;
     cft= cft /2;
-    return lb + distances[currentCity][toCity] - cft;
+    return lb + dct - cft;
 }
 
 bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double bestTourCost){
@@ -137,7 +137,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                     }
                 }
                 if( v != INFINITY && !contains){
-                    lowerBound=updateBound(poppedE.cost, poppedE.currentCity, distances, i);
+                    lowerBound=updateBound(poppedE.cost, poppedE.currentCity, distances[poppedE.currentCity],distances[i],distances[poppedE.currentCity][i]);
                     if(lowerBound>bestTourCost){
                         i++;
                         continue;
