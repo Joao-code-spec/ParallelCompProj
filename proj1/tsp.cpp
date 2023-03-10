@@ -191,7 +191,7 @@ int main(int argc, char *argv[]){
         std::cout << "NO SOLUTION\n" << std::endl;
         return 0;
     }
-    printf("%g\n",t.btCost);
+    printf("%.1f\n",t.btCost);
     for(int iiii : t.bt){
         printf("%d ",iiii);
     }
