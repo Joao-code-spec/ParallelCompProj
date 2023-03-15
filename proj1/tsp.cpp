@@ -18,6 +18,7 @@ typedef struct
     int lenght;
     int currentCity;
 } qElement;
+//TODO index of city to break draws as stated in 3.3
 struct cmp_op { bool operator()(qElement const&  left,qElement const& right) { return left.bound > right.bound; } };
 
 typedef struct
@@ -50,7 +51,9 @@ double lb(std::vector<std::vector<double>> distances, int nCities) {
     return lb;
 }
 
-double updateBound(double cost, int currentCity, std::vector<double> distanceCurrent,std::vector<double> distanceTo, double dct) {
+//TODO apply & to save space
+
+double updateBound(double cost, int currentCity, std::vector<double> &distanceCurrent,std::vector<double> &distanceTo, double dct) {
     double lb = cost;
     double cf,ct,cft;
     double min1f = INFINITY;
@@ -100,13 +103,40 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
     list<int> tour = {0};
     double lowerBound = lb(distances, nCities);
     double d;
+    bool contains[nCities];
+    int help;
     qElement e={tour,0,lowerBound,1,0};
     PriorityQueue<qElement,cmp_op>  queue;
     queue.push(e);
     qElement poppedE;
     bestTaC returnable= {{0},bestTourCost};
+    //TODO vector de min1 and a vector min2 (to use in lb and updateBound)
+    std::vector<double> min1 (nCities,INFINITY);
+    std::vector<double> min2 (nCities,INFINITY);
+    int jkjk=0;
+    for(std::vector<double> cdd : distances){
+        for(int akf = 0; akf < (int) cdd.size();akf++){
+            //double dist = cdd[akf];
+            if(cdd[akf] < min1[jkjk]) {
+                min2[jkjk] = min1[jkjk];
+                min1[jkjk] = cdd[akf];
+            } else if(cdd[akf] < min2[jkjk]) {    
+                min2[jkjk] = cdd[akf];
+            }
+
+        }
+        jkjk++;
+    }
     while(queue.empty() != true){
         poppedE=queue.pop();
+        help=0;
+        while(help<nCities){
+            contains[help]=false;
+            help++;
+        }
+        for(int c : poppedE.tour){
+            contains[c]=true;
+        }
         //printf("POPPED %d LB %.1f cost %.1f \n",poppedE.currentCity,poppedE.bound,poppedE.cost);
         if(poppedE.bound>=bestTourCost){
             
@@ -182,12 +212,12 @@ int main(int argc, char *argv[]){
     fclose(file);
     maxVal = strtol(argv[2], NULL, 10);;
     //printf("%d\n",maxVal);
-    //exec_time = -omp_get_wtime();
+    exec_time = -omp_get_wtime();
 
     t=tspbb(roadMatrix,totalCitys,maxVal);
 
-    //exec_time += omp_get_wtime();
-    //fprintf(stderr, "%.1fs\n", exec_time);
+    exec_time += omp_get_wtime();
+    fprintf(stderr, "%.1fs\n", exec_time);
 
     if(t.btCost>=maxVal){
         std::cout << "NO SOLUTION\n" << std::endl;
