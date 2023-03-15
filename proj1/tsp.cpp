@@ -27,6 +27,7 @@ typedef struct
 	double btCost;
 } bestTaC;
 
+    
 double lb(std::vector<std::vector<double>> distances, int nCities) {
     double lb = 0;
     // calculate the sum of the two smallest distances for each city
@@ -53,9 +54,10 @@ double lb(std::vector<std::vector<double>> distances, int nCities) {
 
 //TODO apply & to save space
 
-double updateBound(double cost, int currentCity, std::vector<double> &distanceCurrent,std::vector<double> &distanceTo, double dct) {
+double updateBound(double cost, int currentCity,int toCity,vector<double> &min1,vector<double> &min2, double dct) {
     double lb = cost;
     double cf,ct,cft;
+    /*
     double min1f = INFINITY;
     double min2f = INFINITY;
     double min1t = INFINITY;
@@ -81,18 +83,18 @@ double updateBound(double cost, int currentCity, std::vector<double> &distanceCu
             min2t = dist;
         }
 
-    }
-    if(dct>=min2f){
-        cf=min2f;
-    }
-    else{
-        cf=min1f;
-    }
-    if(dct>=min2t){
-        ct=min2t;
+    }*/
+    if(dct>=min2[currentCity]){
+        cf=min2[currentCity];
     }
     else{
-        ct=min1t;
+        cf=min1[currentCity];
+    }
+    if(dct>=min2[toCity]){
+        ct=min2[toCity];
+    }
+    else{
+        ct=min1[toCity];
     }
     cft=cf +ct;
     cft= cft /2;
@@ -100,19 +102,13 @@ double updateBound(double cost, int currentCity, std::vector<double> &distanceCu
 }
 
 bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double bestTourCost){
-    list<int> tour = {0};
-    double lowerBound = lb(distances, nCities);
+
+    std::vector<double> min1 (nCities,INFINITY);
+    std::vector<double> min2 (nCities,INFINITY);
     double d;
     bool contains[nCities];
     int help;
-    qElement e={tour,0,lowerBound,1,0};
-    PriorityQueue<qElement,cmp_op>  queue;
-    queue.push(e);
-    qElement poppedE;
-    bestTaC returnable= {{0},bestTourCost};
-    //TODO vector de min1 and a vector min2 (to use in lb and updateBound)
-    std::vector<double> min1 (nCities,INFINITY);
-    std::vector<double> min2 (nCities,INFINITY);
+    list<int> tour = {0};
     int jkjk=0;
     for(std::vector<double> cdd : distances){
         for(int akf = 0; akf < (int) cdd.size();akf++){
@@ -127,6 +123,14 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
         }
         jkjk++;
     }
+    
+    double lowerBound = lb(distances, nCities);
+    qElement e={tour,0,lowerBound,1,0};
+    PriorityQueue<qElement,cmp_op>  queue;
+    queue.push(e);
+    qElement poppedE;
+    bestTaC returnable= {{0},bestTourCost};
+
     while(queue.empty() != true){
         poppedE=queue.pop();
         help=0;
@@ -160,15 +164,8 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
             //TODO find better way of finding if contains, look at sets
             int i=0;
             for(double v : distances[poppedE.currentCity]){
-                bool contains=false;
-                for(int city : poppedE.tour){
-                    if(city==i){
-                        contains=true;
-                        break;
-                    }
-                }
-                if( v != INFINITY && !contains){
-                    lowerBound=updateBound(poppedE.bound, poppedE.currentCity, distances[poppedE.currentCity],distances[i],distances[poppedE.currentCity][i]);
+                if( v != INFINITY && !contains[i]){
+                    lowerBound=updateBound(poppedE.bound, poppedE.currentCity, i, min1, min2, distances[poppedE.currentCity][i]);
                     if(lowerBound>bestTourCost){
                         i++;
                         continue;
