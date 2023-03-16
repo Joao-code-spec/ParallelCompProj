@@ -12,7 +12,7 @@ using namespace std;
 int maxVal;
 typedef struct
 {
-	list<int> tour;
+	vector<int> tour;
     double cost;
 	double bound;
     int lenght;
@@ -23,7 +23,7 @@ struct cmp_op { bool operator()(qElement const&  left,qElement const& right) { r
 
 typedef struct
 {
-	list<int> bt;
+	vector<int> bt;
 	double btCost;
 } bestTaC;
 
@@ -108,7 +108,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
     double d;
     bool contains[nCities];
     int help;
-    list<int> tour = {0};
+    vector<int> tour = {0};
     int jkjk=0;
     for(std::vector<double> cdd : distances){
         for(int akf = 0; akf < (int) cdd.size();akf++){
