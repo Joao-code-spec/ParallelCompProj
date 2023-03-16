@@ -155,7 +155,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
             if(lowerBound<bestTourCost){
                 //tour=poppedE.tour;
                 //tour.push_back(0);
-              	returnable.bt=tour;
+              	returnable.bt=poppedE.tour;
                 returnable.bt.push_back(0);
                 returnable.btCost=lowerBound;
                 bestTourCost=lowerBound;
