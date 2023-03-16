@@ -145,7 +145,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
         if(poppedE.bound>=bestTourCost){
             
             //poppedE.tour.push_front(poppedE.currentCity);
-            returnable={returnable.bt, bestTourCost};
+            //returnable={returnable.bt, bestTourCost};
             return returnable;
         }
         if(poppedE.lenght==nCities){
@@ -153,9 +153,10 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
             // if Cost + Distances(Node, 0) < BestT ourCost then
             lowerBound = poppedE.cost + distances[poppedE.currentCity][0];
             if(lowerBound<bestTourCost){
-                tour=poppedE.tour;
-                tour.push_back(0);
+                //tour=poppedE.tour;
+                //tour.push_back(0);
               	returnable.bt=tour;
+                returnable.bt.push_back(0);
                 returnable.btCost=lowerBound;
                 bestTourCost=lowerBound;
             }
@@ -171,11 +172,12 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                         continue;
                     }
                     int newLenght =poppedE.lenght + 1;
-                    tour=poppedE.tour;
-                    tour.push_back(i);
+                    //tour=poppedE.tour;
+                    //tour.push_back(i);
                     d = poppedE.cost + distances[poppedE.currentCity][i];
 
-                    qElement next = {tour,d,lowerBound,newLenght,i};
+                    qElement next = {poppedE.tour,d,lowerBound,newLenght,i};
+                    next.tour.push_back(i);
                     //printf("pushed %d LB %.2f cost %.2f \n",next.currentCity,next.bound,next.cost);
                     queue.push(next);
                 }
