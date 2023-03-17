@@ -52,38 +52,11 @@ double lb(std::vector<std::vector<double>> distances, int nCities) {
     return lb;
 }
 
-//TODO apply & to save space
 
 double updateBound(double cost, int currentCity,int toCity,vector<double> &min1,vector<double> &min2, double dct) {
     double lb = cost;
     double cf,ct,cft;
-    /*
-    double min1f = INFINITY;
-    double min2f = INFINITY;
-    double min1t = INFINITY;
-    double min2t = INFINITY;
-    // Calculates mins for current city
-    for(int akf = 0; akf < (int) distanceCurrent.size();akf++){
-        double dist = distanceCurrent[akf];
-        if(dist < min1f) {
-            min2f = min1f;
-            min1f = dist;
-        } else if(dist < min2f) {    
-            min2f = dist;
-        }
 
-    }
-    //calculates mins for toCity
-    for(int akf = 0; akf < (int) distanceTo.size();akf++){
-        double dist = distanceTo[akf];
-        if(dist < min1t) {
-            min2t = min1t;
-            min1t = dist;
-        } else if(dist < min2t) {    
-            min2t = dist;
-        }
-
-    }*/
     if(dct>=min2[currentCity]){
         cf=min2[currentCity];
     }
@@ -141,11 +114,8 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
         for(int c : poppedE.tour){
             contains[c]=true;
         }
-        //printf("POPPED %d LB %.1f cost %.1f \n",poppedE.currentCity,poppedE.bound,poppedE.cost);
         if(poppedE.bound>=bestTourCost){
             
-            //poppedE.tour.push_front(poppedE.currentCity);
-            //returnable={returnable.bt, bestTourCost};
             return returnable;
         }
         if(poppedE.lenght==nCities){
@@ -153,8 +123,6 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
             // if Cost + Distances(Node, 0) < BestT ourCost then
             lowerBound = poppedE.cost + distances[poppedE.currentCity][0];
             if(lowerBound<bestTourCost){
-                //tour=poppedE.tour;
-                //tour.push_back(0);
               	returnable.bt=poppedE.tour;
                 returnable.bt.push_back(0);
                 returnable.btCost=lowerBound;
@@ -162,7 +130,6 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
             }
         }
         else{
-            //TODO find better way of finding if contains, look at sets
             int i=0;
             for(double v : distances[poppedE.currentCity]){
                 if( v != INFINITY && !contains[i]){
@@ -172,13 +139,10 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                         continue;
                     }
                     int newLenght =poppedE.lenght + 1;
-                    //tour=poppedE.tour;
-                    //tour.push_back(i);
                     d = poppedE.cost + distances[poppedE.currentCity][i];
 
                     qElement next = {poppedE.tour,d,lowerBound,newLenght,i};
                     next.tour.push_back(i);
-                    //printf("pushed %d LB %.2f cost %.2f \n",next.currentCity,next.bound,next.cost);
                     queue.push(next);
                 }
                 i++;
