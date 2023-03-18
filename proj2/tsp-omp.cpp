@@ -78,9 +78,8 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
 
     std::vector<double> min1 (nCities,INFINITY);
     std::vector<double> min2 (nCities,INFINITY);
-    double d;
     bool contains[nCities];
-    int help;
+    int qConfirmedEmpty=INFINITY;
     vector<int> tour = {0};
     int jkjk=0;
     for(std::vector<double> cdd : distances){
@@ -99,54 +98,86 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
     
     double lowerBound = lb(distances, nCities);
     qElement e={tour,0,lowerBound,1,0};
-    PriorityQueue<qElement,cmp_op>  queue;
-    queue.push(e);
+    //sets one priority queue for each process         numOfthreads
+    std::vector<PriorityQueue<qElement,cmp_op>>  queues(1);
+    queues[0].push(e);
+    PriorityQueue<qElement,cmp_op>  masterQueue;
     qElement poppedE;
     bestTaC returnable= {{0},bestTourCost};
 
-    while(queue.empty() != true){
-        poppedE=queue.pop();
-        help=0;
-        while(help<nCities){
-            contains[help]=false;
-            help++;
-        }
-        for(int c : poppedE.tour){
-            contains[c]=true;
-        }
-        if(poppedE.bound>=bestTourCost){
-            
-            return returnable;
-        }
-        if(poppedE.lenght==nCities){
-            //re-used lowerBound because it is a double this has nothing to do with lowerbound
-            // if Cost + Distances(Node, 0) < BestT ourCost then
-            lowerBound = poppedE.cost + distances[poppedE.currentCity][0];
-            if(lowerBound<bestTourCost){
-              	returnable.bt=poppedE.tour;
-                returnable.bt.push_back(0);
-                returnable.btCost=lowerBound;
-                bestTourCost=lowerBound;
-            }
-        }
-        else{
-            int i=0;
-            for(double v : distances[poppedE.currentCity]){
-                if( v != INFINITY && !contains[i]){
-                    lowerBound=updateBound(poppedE.bound, poppedE.currentCity, i, min1, min2, distances[poppedE.currentCity][i]);
-                    if(lowerBound>bestTourCost){
-                        i++;
-                        continue;
-                    }
-                    int newLenght =poppedE.lenght + 1;
-                    d = poppedE.cost + distances[poppedE.currentCity][i];
 
-                    qElement next = {poppedE.tour,d,lowerBound,newLenght,i};
-                    next.tour.push_back(i);
-                    queue.push(next);
-                }
-                i++;
+    #pragma omp parallel for private(poppedE,lowerBound,contains)
+    for(int step=0; step<qConfirmedEmpty; step++){
+        if(!queues[omp_get_thread_num()].empty()){
+            poppedE=queues[omp_get_thread_num()].pop();
+            int help=0;
+            while(help<nCities){
+                contains[help]=false;
+                help++;
             }
+            for(int c : poppedE.tour){
+                contains[c]=true;
+            }
+            if(poppedE.bound>=bestTourCost){
+                queues[omp_get_thread_num()].clear();
+            }
+            if(poppedE.lenght==nCities){
+                //re-used lowerBound because it is a double this has nothing to do with lowerbound
+                // if Cost + Distances(Node, 0) < BestT ourCost then
+                lowerBound = poppedE.cost + distances[poppedE.currentCity][0];
+                if(lowerBound<bestTourCost){
+                    returnable.bt=poppedE.tour;
+                    returnable.bt.push_back(0);
+                    returnable.btCost=lowerBound;
+                    bestTourCost=lowerBound;
+                }
+            }
+            else{
+                int i=0;
+                for(double v : distances[poppedE.currentCity]){
+                    if( v != INFINITY && !contains[i]){
+                        lowerBound=updateBound(poppedE.bound, poppedE.currentCity, i, min1, min2, distances[poppedE.currentCity][i]);
+                        if(lowerBound>bestTourCost){
+                            i++;
+                            continue;
+                        }
+                        int newLenght =poppedE.lenght + 1;
+                        double d = poppedE.cost + distances[poppedE.currentCity][i];
+
+                        qElement next = {poppedE.tour,d,lowerBound,newLenght,i};
+                        next.tour.push_back(i);
+                        queues[omp_get_thread_num()].push(next);
+                    }
+                    i++;
+                }
+            }
+        }
+        if(step%100){
+            /*waits to merge*/
+            #pragma omp barrier
+            #pragma omp singular
+            /*all empty ?*/
+            bool allEmpty=true;
+            for(PriorityQueue<qElement,cmp_op> q : queues){
+                if(!q.empty()){
+                    allEmpty=false;
+                }
+            }
+            if(allEmpty){
+                qConfirmedEmpty=step;
+            }
+            /*merge*/
+            for(PriorityQueue<qElement,cmp_op> q : queues){
+                while(q.empty()!=true){
+                    masterQueue.push(q.pop());
+                }
+            }
+            int zx=0;
+            while(!masterQueue.empty()){
+                queues[zx%omp_get_num_threads()].push(masterQueue.pop());
+            }
+
+            #pragma omp barrier
         }
     }
     return returnable;
