@@ -156,27 +156,28 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
             /*waits to merge*/
             #pragma omp barrier
             #pragma omp singular
-            /*all empty ?*/
-            bool allEmpty=true;
-            for(PriorityQueue<qElement,cmp_op> q : queues){
-                if(!q.empty()){
-                    allEmpty=false;
+            {
+                /*all empty ?*/
+                bool allEmpty=true;
+                for(PriorityQueue<qElement,cmp_op> q : queues){
+                    if(!q.empty()){
+                        allEmpty=false;
+                    }
+                }
+                if(allEmpty){
+                    qConfirmedEmpty=step;
+                }
+                /*merge*/
+                for(PriorityQueue<qElement,cmp_op> q : queues){
+                    while(q.empty()!=true){
+                        masterQueue.push(q.pop());
+                    }
+                }
+                int zx=0;
+                while(!masterQueue.empty()){
+                    queues[zx%omp_get_num_threads()].push(masterQueue.pop());
                 }
             }
-            if(allEmpty){
-                qConfirmedEmpty=step;
-            }
-            /*merge*/
-            for(PriorityQueue<qElement,cmp_op> q : queues){
-                while(q.empty()!=true){
-                    masterQueue.push(q.pop());
-                }
-            }
-            int zx=0;
-            while(!masterQueue.empty()){
-                queues[zx%omp_get_num_threads()].push(masterQueue.pop());
-            }
-
             #pragma omp barrier
         }
     }
