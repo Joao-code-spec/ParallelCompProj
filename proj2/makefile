@@ -5,7 +5,7 @@ CFLAGS=-O3 -Wall -std=c++17 -fopenmp
 # linker flags
 LDFLAGS=
 # source files
-SOURCES=tsp.cpp
+SOURCES=tsp-omp.cpp
 # object files
 OBJECTS=$(SOURCES:.cpp=.o)
 # target executable
