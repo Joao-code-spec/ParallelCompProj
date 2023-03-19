@@ -19,7 +19,11 @@ typedef struct
     int currentCity;
 } qElement;
 //TODO index of city to break draws as stated in 3.3
-struct cmp_op { bool operator()(qElement const&  left,qElement const& right) { return left.bound > right.bound; } };
+struct cmp_op { bool operator()(qElement const&  left,qElement const& right) {     
+    if(left.bound == right.bound){
+        return left.currentCity>right.currentCity;
+    }
+    return left.bound > right.bound; } };
 
 typedef struct
 {
