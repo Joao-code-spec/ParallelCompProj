@@ -125,11 +125,14 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                 //re-used lowerBound because it is a double this has nothing to do with lowerbound
                 // if Cost + Distances(Node, 0) < BestT ourCost then
                 lowerBound = poppedE.cost + distances[poppedE.currentCity][0];
-                if(lowerBound<bestTourCost){
-                    returnable.bt=poppedE.tour;
-                    returnable.bt.push_back(0);
-                    returnable.btCost=lowerBound;
-                    bestTourCost=lowerBound;
+                #pragma omp critical updateReturnable
+                {
+                    if(lowerBound<bestTourCost){
+                        returnable.bt=poppedE.tour;
+                        returnable.bt.push_back(0);
+                        returnable.btCost=lowerBound;
+                        bestTourCost=lowerBound;
+                    }
                 }
             }
             else{
