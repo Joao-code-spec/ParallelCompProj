@@ -106,7 +106,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
     bestTaC returnable= {{0},bestTourCost};
 
 
-    #pragma omp parallel private(poppedE,lowerBound,contains)
+    #pragma omp parallel private(poppedE,lowerBound,contains) num_threads(1)
     {
         /*make step chared by all treads*/
         int step=0;
