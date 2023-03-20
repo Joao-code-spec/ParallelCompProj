@@ -129,6 +129,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                 }
                 if(poppedE.bound>=bestTourCost){
                     queues[id].clear();
+                    //break;
                 }
                 if(poppedE.lenght==nCities){
                     //re-used lowerBound because it is a double this has nothing to do with lowerbound
@@ -180,6 +181,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                         qConfirmedEmpty=true;
                     }
                     /*merge*/
+                    /*
                     for(PriorityQueue<qElement,cmp_op> q : queues){
                         while(q.empty()!=true){
                             masterQueue.push(q.pop());
@@ -188,12 +190,14 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                     int zx=0;
                     while(!masterQueue.empty()){
                         queues[zx%nOfThreads].push(masterQueue.pop());
-                    }
+                        zx++;
+                    }*/
                 }
                 #pragma omp barrier
             }
+            step++;
         }
-        step++;
+        
     }
     return returnable;
 }
