@@ -127,9 +127,9 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                 for(int c : poppedE.tour){
                     contains[c]=true;
                 }
-                if(poppedE.bound>=bestTourCost){
+                if(poppedE.bound>=returnable.btCost){
                     queues[id].clear();
-                    //break;
+                    continue;
                 }
                 if(poppedE.lenght==nCities){
                     //re-used lowerBound because it is a double this has nothing to do with lowerbound
@@ -137,11 +137,11 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                     lowerBound = poppedE.cost + distances[poppedE.currentCity][0];
                     #pragma omp critical
                     {
-                        if(lowerBound<bestTourCost){
+                        if(lowerBound<returnable.btCost){
                             returnable.bt=poppedE.tour;
                             returnable.bt.push_back(0);
                             returnable.btCost=lowerBound;
-                            bestTourCost=lowerBound;
+                            //bestTourCost=lowerBound;
                         }
                     }
                 }
@@ -150,7 +150,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                     for(double v : distances[poppedE.currentCity]){
                         if( v != INFINITY && !contains[i]){
                             lowerBound=updateBound(poppedE.bound, poppedE.currentCity, i, min1, min2, distances[poppedE.currentCity][i]);
-                            if(lowerBound>bestTourCost){
+                            if(lowerBound>returnable.btCost){
                                 i++;
                                 continue;
                             }
@@ -183,7 +183,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                     /*merge*/
                     
                     for(PriorityQueue<qElement,cmp_op>& q : queues){
-                        for(int kk=0;kk<3;kk++){
+                        for(int kk=0;kk<4;kk++){
                             if(q.empty()!=true){
                                 masterQueue.push(q.pop());
                             }
