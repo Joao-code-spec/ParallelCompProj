@@ -183,8 +183,10 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                     /*merge*/
                     
                     for(PriorityQueue<qElement,cmp_op>& q : queues){
-                        while(q.empty()!=true){
-                            masterQueue.push(q.pop());
+                        for(int kk=0;kk<3;kk++){
+                            if(q.empty()!=true){
+                                masterQueue.push(q.pop());
+                            }
                         }
                     }
                     int zx=0;
