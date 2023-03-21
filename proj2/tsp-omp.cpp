@@ -113,7 +113,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
     #pragma omp parallel private(poppedE,lowerBound,contains) num_threads(1)
     {
         /*make step chared by all treads*/
-        int step=0;
+        int step=99;
         int id = omp_get_thread_num();
         int nOfThreads = omp_get_num_threads();
         while(!qConfirmedEmpty){
