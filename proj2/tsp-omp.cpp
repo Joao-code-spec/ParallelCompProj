@@ -78,15 +78,17 @@ double updateBound(double cost, int currentCity,int toCity,vector<double> &min1,
     return lb + dct - cft;
 }
 
-bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double bestTourCost){
+
+bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double bestTourCost, int nThreads){
 
     std::vector<double> min1 (nCities,INFINITY);
     std::vector<double> min2 (nCities,INFINITY);
     bool contains[nCities];
     bool qConfirmedEmpty=false;
     vector<int> tour = {0};
-    int jkjk=0;
-    for(std::vector<double> cdd : distances){
+    if(nThreads==1){
+        int jkjk=0;
+        for(std::vector<double> cdd : distances){
         for(int akf = 0; akf < (int) cdd.size();akf++){
             //double dist = cdd[akf];
             if(cdd[akf] < min1[jkjk]) {
@@ -99,18 +101,31 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
         }
         jkjk++;
     }
-    
+    }
+    else {
+        #pragma omp parallel for schedule(dynamic, 1)
+        for (int i = 0; i < nCities; ++i) {
+            for (int j = 0; j < nCities; ++j) {
+                if (distances[i][j] < min1[i]) {
+                    min2[i] = min1[i];
+                    min1[i] = distances[i][j];
+                } else if (distances[i][j] < min2[i]) {
+                    min2[i] = distances[i][j];
+                }
+            }
+        }
+    }
     double lowerBound = lb(distances, nCities);
     qElement e={tour,0,lowerBound,1,0};
     //sets one priority queue for each process         numOfthreads
-    std::vector<PriorityQueue<qElement,cmp_op>>  queues(1);
+    std::vector<PriorityQueue<qElement,cmp_op>>  queues(nThreads);
     queues[0].push(e);
     PriorityQueue<qElement,cmp_op>  masterQueue;
     qElement poppedE;
     bestTaC returnable= {{0},bestTourCost};
 
 
-    #pragma omp parallel private(poppedE,lowerBound,contains) num_threads(1)
+    #pragma omp parallel private(poppedE,lowerBound,contains) num_threads(nThreads)
     {
         /*make step chared by all treads*/
         int step=99;
@@ -127,9 +142,9 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                 for(int c : poppedE.tour){
                     contains[c]=true;
                 }
-                if(poppedE.bound>=returnable.btCost){
+                if(poppedE.bound>=bestTourCost){
                     queues[id].clear();
-                    continue;
+                    //break;
                 }
                 if(poppedE.lenght==nCities){
                     //re-used lowerBound because it is a double this has nothing to do with lowerbound
@@ -137,11 +152,11 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                     lowerBound = poppedE.cost + distances[poppedE.currentCity][0];
                     #pragma omp critical
                     {
-                        if(lowerBound<returnable.btCost){
+                        if(lowerBound<bestTourCost){
                             returnable.bt=poppedE.tour;
                             returnable.bt.push_back(0);
                             returnable.btCost=lowerBound;
-                            //bestTourCost=lowerBound;
+                            bestTourCost=lowerBound;
                         }
                     }
                 }
@@ -150,7 +165,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                     for(double v : distances[poppedE.currentCity]){
                         if( v != INFINITY && !contains[i]){
                             lowerBound=updateBound(poppedE.bound, poppedE.currentCity, i, min1, min2, distances[poppedE.currentCity][i]);
-                            if(lowerBound>returnable.btCost){
+                            if(lowerBound>bestTourCost){
                                 i++;
                                 continue;
                             }
@@ -165,7 +180,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                     }
                 }
             }
-            if(step%100 == 0){
+            if(step%50 == 0){
                 /*waits to merge*/
                 #pragma omp barrier
                 #pragma omp single
@@ -183,7 +198,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                     /*merge*/
                     
                     for(PriorityQueue<qElement,cmp_op>& q : queues){
-                        for(int kk=0;kk<4;kk++){
+                        for(int kk=0;kk<3;kk++){
                             if(q.empty()!=true){
                                 masterQueue.push(q.pop());
                             }
@@ -208,7 +223,7 @@ int main(int argc, char *argv[]){
     int totalCitys;
     int totalRoads;
     int i1, i2;
-    double exec_time, distance;
+    double exec_time1, exec_time2,  distance;
     bestTaC t;
     if ((file = fopen(argv[1],"r")) == NULL){
        printf("Error! file doesnt exist \n");
@@ -227,13 +242,12 @@ int main(int argc, char *argv[]){
     fclose(file);
     maxVal = strtol(argv[2], NULL, 10);;
     //printf("%d\n",maxVal);
-    exec_time = -omp_get_wtime();
+    exec_time1 = -omp_get_wtime();
 
-    t=tspbb(roadMatrix,totalCitys,maxVal);
+    t=tspbb(roadMatrix,totalCitys,maxVal,4);
 
-    exec_time += omp_get_wtime();
-    fprintf(stderr, "%.1fs\n", exec_time);
-
+    exec_time1 += omp_get_wtime();
+    fprintf(stderr, "Multithread: %.1fs\n", exec_time1);
     if(t.btCost>=maxVal){
         std::cout << "NO SOLUTION\n" << std::endl;
         return 0;
@@ -243,5 +257,24 @@ int main(int argc, char *argv[]){
         printf("%d ",iiii);
     }
     printf("\n");
+    
+    exec_time2 = -omp_get_wtime();
+
+    t=tspbb(roadMatrix,totalCitys,maxVal,1);
+
+    exec_time2 += omp_get_wtime();
+    fprintf(stderr, "Single: %.1fs\n", exec_time2);
+    if(t.btCost>=maxVal){
+        std::cout << "NO SOLUTION\n" << std::endl;
+        return 0;
+    }
+    printf("%.1f\n",t.btCost);
+    for(int iiii : t.bt){
+        printf("%d ",iiii);
+    }
+    printf("\n");
+    fprintf(stderr, "Speedup: %.2f\n", exec_time2/exec_time1);
+
+    
     return 1;
 }
