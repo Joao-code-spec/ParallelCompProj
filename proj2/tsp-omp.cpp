@@ -86,7 +86,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
     bool contains[nCities];
     bool qConfirmedEmpty=false;
     vector<int> tour = {0};
-    if(nThreads==1){
+    //if(nThreads==1){
         int jkjk=0;
         for(std::vector<double> cdd : distances){
         for(int akf = 0; akf < (int) cdd.size();akf++){
@@ -101,8 +101,8 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
         }
         jkjk++;
     }
-    }
-    else {
+    //}
+    /*else {
         #pragma omp parallel for schedule(dynamic, 1)
         for (int i = 0; i < nCities; ++i) {
             for (int j = 0; j < nCities; ++j) {
@@ -114,7 +114,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                 }
             }
         }
-    }
+    }*/
     double lowerBound = lb(distances, nCities);
     qElement e={tour,0,lowerBound,1,0};
     //sets one priority queue for each process         numOfthreads
@@ -180,7 +180,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                     }
                 }
             }
-            if(step%50 == 0){
+            if(step%100 == 0){
                 /*waits to merge*/
                 #pragma omp barrier
                 #pragma omp single
@@ -196,7 +196,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                         qConfirmedEmpty=true;
                     }
                     /*merge*/
-                    
+                    /*
                     for(PriorityQueue<qElement,cmp_op>& q : queues){
                         for(int kk=0;kk<3;kk++){
                             if(q.empty()!=true){
@@ -208,6 +208,16 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                     while(!masterQueue.empty()){
                         queues[zx%nOfThreads].push(masterQueue.pop());
                         zx++;
+                    }*/
+                    for(int zc=0;zc<nOfThreads;zc++){
+                        for(int za=1;za<nOfThreads;za++){
+                            if(queues[zc].empty()){
+                                break;
+                            }
+                            if(queues[(zc+za)%nOfThreads].empty()){
+                                queues[(zc+za)%nOfThreads].push(queues[zc].pop());
+                            }
+                        }
                     }
                 }
                 #pragma omp barrier
@@ -257,7 +267,7 @@ int main(int argc, char *argv[]){
         printf("%d ",iiii);
     }
     printf("\n");
-    
+    /*
     exec_time2 = -omp_get_wtime();
 
     t=tspbb(roadMatrix,totalCitys,maxVal,1);
@@ -274,6 +284,7 @@ int main(int argc, char *argv[]){
     }
     printf("\n");
     fprintf(stderr, "Speedup: %.2f\n", exec_time2/exec_time1);
+    */
 
     
     return 1;
