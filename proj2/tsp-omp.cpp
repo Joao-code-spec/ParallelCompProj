@@ -79,7 +79,7 @@ double updateBound(double cost, int currentCity,int toCity,vector<double> &min1,
 }
 
 
-bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double bestTourCost, int nThreads){
+bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double bestTourCost){
 
     std::vector<double> min1 (nCities,INFINITY);
     std::vector<double> min2 (nCities,INFINITY);
@@ -118,13 +118,13 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
     double lowerBound = lb(distances, nCities);
     qElement e={tour,0,lowerBound,1,0};
     //sets one priority queue for each process         numOfthreads
-    std::vector<PriorityQueue<qElement,cmp_op>>  queues(nThreads);
+    std::vector<PriorityQueue<qElement,cmp_op>>  queues(omp_get_max_threads());
     queues[0].push(e);
     PriorityQueue<qElement,cmp_op>  masterQueue;
     qElement poppedE;
     bestTaC returnable= {{0},bestTourCost};
 
-    #pragma omp parallel private(poppedE,lowerBound,contains) num_threads(nThreads)
+    #pragma omp parallel private(poppedE,lowerBound,contains)
     {
         /*make step chared by all treads*/
         int step=99;
@@ -250,7 +250,7 @@ int main(int argc, char *argv[]){
     //printf("%d\n",maxVal);
     exec_time1 = -omp_get_wtime();
 
-    t=tspbb(roadMatrix,totalCitys,maxVal,4);
+    t=tspbb(roadMatrix,totalCitys,maxVal);
 
     exec_time1 += omp_get_wtime();
     fprintf(stderr, "Multithread: %.1fs\n", exec_time1);
