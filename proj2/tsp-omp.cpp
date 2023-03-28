@@ -253,7 +253,7 @@ int main(int argc, char *argv[]){
     t=tspbb(roadMatrix,totalCitys,maxVal);
 
     exec_time1 += omp_get_wtime();
-    fprintf(stderr, "Multithread: %.1fs\n", exec_time1);
+    fprintf(stderr, "%.1fs\n", exec_time1);
     if(t.btCost>=maxVal){
         std::cout << "NO SOLUTION\n" << std::endl;
         return 0;
