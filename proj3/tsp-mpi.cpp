@@ -110,15 +110,18 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
     std::vector<double> min1 (nCities,INFINITY);
     std::vector<double> min2 (nCities,INFINITY);
     PriorityQueue<qElement,cmp_op>  queue;
-    double d;
+    double d, neiborRet;
     bool contains[nCities];
-    int help;
+    int help, rankNext, rankPrev;
     double lowerBound;
     double newBound;
     qElement poppedE;
     qElement e;
-    vector<int> tour = {0};
+    vector<int> tour /*= {0}*/;
+
+    bool allWhite=false;
     int jkjk=0;
+    int step=1;
     for(std::vector<double> cdd : distances){
         for(int akf = 0; akf < (int) cdd.size();akf++){
             //double dist = cdd[akf];
@@ -134,6 +137,8 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
     }
     
 
+    rankNext=(rank + 1)%num_procs;
+    rankPrev= rank==0 ? num_procs-1 : rank - 1;
     lowerBound = lb(distances, nCities);
     /*creates the initial state for each queue*/
     help=rank+1;
@@ -153,57 +158,80 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
     /*qElement e={tour,0,lowerBound,1,0};
     queue.push(e);*/
     bestTaC returnable= {{0},bestTourCost};
-
-    while(queue.empty() != true){
-        poppedE=queue.pop();
-        help=0;
-        while(help<nCities){
-            contains[help]=false;
-            help++;
-        }
-        for(int c : poppedE.tour){
-            contains[c]=true;
-        }
-        //printf("POPPED %d LB %.1f cost %.1f \n",poppedE.currentCity,poppedE.bound,poppedE.cost);
-        if(poppedE.bound>=bestTourCost){
-            
-            //poppedE.tour.push_front(poppedE.currentCity);
-            //returnable={returnable.bt, bestTourCost};
-            return returnable;
-        }
-        if(poppedE.lenght==nCities){
-            //re-used lowerBound because it is a double this has nothing to do with lowerbound
-            // if Cost + Distances(Node, 0) < BestT ourCost then
-            lowerBound = poppedE.cost + distances[poppedE.currentCity][0];
-            if(lowerBound<bestTourCost){
-                //tour=poppedE.tour;
-                //tour.push_back(0);
-              	returnable.bt=poppedE.tour;
-                returnable.bt.push_back(0);
-                returnable.btCost=lowerBound;
-                bestTourCost=lowerBound;
+    while(allWhite==false){
+        if(queue.empty() != true){
+            poppedE=queue.pop();
+            help=0;
+            while(help<nCities){
+                contains[help]=false;
+                help++;
             }
-        }
-        else{
-            int i=0;
-            for(double v : distances[poppedE.currentCity]){
-                if( v != INFINITY && !contains[i]){
-                    lowerBound=updateBound(poppedE.bound, poppedE.currentCity, i, min1, min2, distances[poppedE.currentCity][i]);
-                    if(lowerBound>bestTourCost){
-                        i++;
-                        continue;
-                    }
-                    int newLenght =poppedE.lenght + 1;
-                    d = poppedE.cost + distances[poppedE.currentCity][i];
-
-                    qElement next = {poppedE.tour,d,lowerBound,newLenght,i};
-                    next.tour.push_back(i);
-                    //printf("pushed %d LB %.2f cost %.2f \n",next.currentCity,next.bound,next.cost);
-                    queue.push(next);
+            for(int c : poppedE.tour){
+                contains[c]=true;
+            }
+            //printf("POPPED %d LB %.1f cost %.1f \n",poppedE.currentCity,poppedE.bound,poppedE.cost);
+            if(poppedE.bound>=bestTourCost){
+                
+                //poppedE.tour.push_front(poppedE.currentCity);
+                //returnable={returnable.bt, bestTourCost};
+                queue.clear();
+                return returnable;
+            }
+            if(poppedE.lenght==nCities){
+                //re-used lowerBound because it is a double this has nothing to do with lowerbound
+                // if Cost + Distances(Node, 0) < BestT ourCost then
+                lowerBound = poppedE.cost + distances[poppedE.currentCity][0];
+                if(lowerBound<bestTourCost){
+                    //tour=poppedE.tour;
+                    //tour.push_back(0);
+                    returnable.bt=poppedE.tour;
+                    returnable.bt.push_back(0);
+                    returnable.btCost=lowerBound;
+                    bestTourCost=lowerBound;
                 }
-                i++;
+            }
+            else{
+                int i=0;
+                for(double v : distances[poppedE.currentCity]){
+                    if( v != INFINITY && !contains[i]){
+                        lowerBound=updateBound(poppedE.bound, poppedE.currentCity, i, min1, min2, distances[poppedE.currentCity][i]);
+                        if(lowerBound>bestTourCost){
+                            i++;
+                            continue;
+                        }
+                        int newLenght =poppedE.lenght + 1;
+                        d = poppedE.cost + distances[poppedE.currentCity][i];
+
+                        qElement next = {poppedE.tour,d,lowerBound,newLenght,i};
+                        next.tour.push_back(i);
+                        //printf("pushed %d LB %.2f cost %.2f \n",next.currentCity,next.bound,next.cost);
+                        queue.push(next);
+                    }
+                    i++;
+                }
             }
         }
+        /*check neibors every 50 step*/
+        if(step%50==0){
+            //TODO add termination
+            /*Send first*/
+            if(rank%2==0){
+                MPI_Send((void *)&bestTourCost, 1, MPI_DOUBLE, rankNext, 1, MPI_COMM_WORLD);
+                MPI_Recv((void *)&neiborRet, 1, MPI_DOUBLE, rankPrev, 1, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+                if(neiborRet<bestTourCost){
+                    bestTourCost=neiborRet;
+                }
+            }
+            /*Recive first*/
+            else{
+                MPI_Recv((void *)&neiborRet, 1, MPI_DOUBLE, rankPrev, 1, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+                MPI_Send((void *)&bestTourCost, 1, MPI_DOUBLE, rankNext, 1, MPI_COMM_WORLD);
+                if(neiborRet<bestTourCost){
+                    bestTourCost=neiborRet;
+                }
+            }
+        }
+        step++;
     }
     return returnable;
 }
