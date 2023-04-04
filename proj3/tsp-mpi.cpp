@@ -105,13 +105,18 @@ double updateBound(double cost, int currentCity,int toCity,vector<double> &min1,
     return lb + dct - cft;
 }
 
-bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double bestTourCost){
+bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double bestTourCost, int rank, int num_procs){
 
     std::vector<double> min1 (nCities,INFINITY);
     std::vector<double> min2 (nCities,INFINITY);
+    PriorityQueue<qElement,cmp_op>  queue;
     double d;
     bool contains[nCities];
     int help;
+    double lowerBound;
+    double newBound;
+    qElement poppedE;
+    qElement e;
     vector<int> tour = {0};
     int jkjk=0;
     for(std::vector<double> cdd : distances){
@@ -128,11 +133,25 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
         jkjk++;
     }
     
-    double lowerBound = lb(distances, nCities);
-    qElement e={tour,0,lowerBound,1,0};
-    PriorityQueue<qElement,cmp_op>  queue;
-    queue.push(e);
-    qElement poppedE;
+
+    lowerBound = lb(distances, nCities);
+    /*creates the initial state for each queue*/
+    help=rank+1;
+    while(help<nCities){
+        if(distances[0][help]!=INFINITY){
+            tour={0,help};
+            d = distances[0][help];
+            newBound=updateBound(lowerBound, 0, help, min1, min2, distances[0][help]);
+            e={tour,d,newBound,2,help};
+            queue.push(e);
+        }
+        help+=num_procs;
+    }
+
+
+    
+    /*qElement e={tour,0,lowerBound,1,0};
+    queue.push(e);*/
     bestTaC returnable= {{0},bestTourCost};
 
     while(queue.empty() != true){
@@ -166,7 +185,6 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
             }
         }
         else{
-            //TODO find better way of finding if contains, look at sets
             int i=0;
             for(double v : distances[poppedE.currentCity]){
                 if( v != INFINITY && !contains[i]){
@@ -176,8 +194,6 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                         continue;
                     }
                     int newLenght =poppedE.lenght + 1;
-                    //tour=poppedE.tour;
-                    //tour.push_back(i);
                     d = poppedE.cost + distances[poppedE.currentCity][i];
 
                     qElement next = {poppedE.tour,d,lowerBound,newLenght,i};
@@ -194,9 +210,9 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
 int main(int argc, char *argv[]){
     MPI_Init(&argc, &argv);
 
-    int rank, size;
+    int rank, num_procs;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
     FILE * file;
     int totalCitys;
     int totalRoads;
@@ -222,7 +238,7 @@ int main(int argc, char *argv[]){
     //printf("%d\n",maxVal);
     exec_time = -omp_get_wtime();
 
-    t=tspbb(roadMatrix,totalCitys,maxVal);
+    t=tspbb(roadMatrix,totalCitys,maxVal,rank,num_procs);
 
     exec_time += omp_get_wtime();
     if(rank==0)
