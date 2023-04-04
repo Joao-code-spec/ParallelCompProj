@@ -7,6 +7,7 @@
 #include <cmath>
 #include <algorithm>
 #include <omp.h>
+#include <mpi.h>
 
 using namespace std;
 int maxVal;
@@ -56,7 +57,6 @@ double lb(std::vector<std::vector<double>> distances, int nCities) {
     return lb;
 }
 
-//TODO apply & to save space
 
 double updateBound(double cost, int currentCity,int toCity,vector<double> &min1,vector<double> &min2, double dct) {
     double lb = cost;
@@ -192,6 +192,11 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
     return returnable;
 }
 int main(int argc, char *argv[]){
+    MPI_Init(&argc, &argv);
+
+    int rank, size;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
     FILE * file;
     int totalCitys;
     int totalRoads;
@@ -220,7 +225,8 @@ int main(int argc, char *argv[]){
     t=tspbb(roadMatrix,totalCitys,maxVal);
 
     exec_time += omp_get_wtime();
-    fprintf(stderr, "%.1fs\n", exec_time);
+    if(rank==0)
+        fprintf(stderr, "%.1fs\n", exec_time);
 
     if(t.btCost>=maxVal){
         std::cout << "NO SOLUTION\n" << std::endl;
@@ -231,5 +237,7 @@ int main(int argc, char *argv[]){
         printf("%d ",iiii);
     }
     printf("\n");
-    return 1;
+    
+    MPI_Finalize();
+    return 0;
 }
