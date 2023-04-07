@@ -109,16 +109,23 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
 
     std::vector<double> min1 (nCities,INFINITY);
     std::vector<double> min2 (nCities,INFINITY);
+    /*used so that we dont have to reshape returnable vector*/
+    std::vector<int> rTourFiller (nCities+1,0);
     PriorityQueue<qElement,cmp_op>  queue;
     double d, neiborRet;
     bool contains[nCities];
+    bool sentFirst;
     int help, rankNext, rankPrev;
     double lowerBound;
     double newBound;
+    int token,myColour;
+    MPI_Request request;
+    MPI_Request reqForBroadc/*[num_procs-1]*/;
     qElement poppedE;
     qElement e;
     vector<int> tour /*= {0}*/;
 
+    char retBuff[270];
     bool allWhite=false;
     int jkjk=0;
     int step=1;
@@ -153,11 +160,14 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
         help+=num_procs;
     }
 
-
-    
+    sentFirst=false;
+    //token white=0, black=1;
+    token=0;
+    myColour=0;
     /*qElement e={tour,0,lowerBound,1,0};
     queue.push(e);*/
     bestTaC returnable= {{0},bestTourCost};
+    returnable.bt=rTourFiller;
     while(allWhite==false){
         if(queue.empty() != true){
             poppedE=queue.pop();
@@ -213,19 +223,13 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
         }
         /*check neibors every 50 step*/
         if(step%50==0){
-            //Termination
-	    if (queue.empty()==true) {
-                MPI_Recv(&token, 1, MPI_INT, rankPrev, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                if (rank == 0 && token == num_procs) {
-                // if the token reaches the starting process and the computation is done
-                    allWhite=true;
+            //broadCast version
+            /*if(rank==0){
+                for(int P=1;P<num_procs;P++){
+                    MPI_
                 }
-                else {
-                    // increment the token and pass it to the next process
-                    token++;
-                    MPI_Send(&token, 1, MPI_INT, rankNext, 0, MPI_COMM_WORLD);
-                }
-            }
+            }*/
+            //version send to next
             /*Send first*/
             if(rank%2==0){
                 MPI_Send((void *)&bestTourCost, 1, MPI_DOUBLE, rankNext, 1, MPI_COMM_WORLD);
@@ -242,8 +246,70 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                     bestTourCost=neiborRet;
                 }
             }
+            //Termination
+	        if (queue.empty()==true) {
+                //MPI_Recv(&token, 1, MPI_INT, rankPrev, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                int flag=0;
+                if (rank == 0) {
+                    if(!sentFirst){
+                        /*send first token*/
+                        MPI_Isend(&token, 1, MPI_INT, rankNext, 2, MPI_COMM_WORLD,&request);
+                        sentFirst=true;
+                        MPI_Request_free(&request);
+                    }
+                    else{
+                        MPI_Iprobe(rankPrev,2,MPI_COMM_WORLD,&flag,MPI_STATUS_IGNORE);
+                        if(flag){
+                            MPI_Recv(&token,1,MPI_INT,rankPrev,2,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+                            if(token==0){
+                                /*all white terminate process*/
+                                allWhite=true;
+                            }
+                            else{
+                                /*sets token to 0 white and restarst cicle*/
+                                MPI_Isend(&token, 1, MPI_INT, rankNext, 2, MPI_COMM_WORLD,&request);
+                                token=0;
+                                MPI_Request_free(&request);
+                            }
+                        }
+
+                    }
+                    
+                }
+                else {
+                    // increment the token and pass it to the next process
+                    MPI_Iprobe(rankPrev,2,MPI_COMM_WORLD,&flag,MPI_STATUS_IGNORE);
+                    if(flag){
+                        MPI_Recv(&token,1,MPI_INT,rankPrev,2,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+                        /*TODO black when send to prev node and white when send token to next*/
+                        MPI_Isend(&token, 1, MPI_INT, rankNext, 2, MPI_COMM_WORLD,&request);
+                        myColour=0;
+                        MPI_Request_free(&request);
+                    }
+                    //token++;
+                    //MPI_Send(&token, 1, MPI_INT, rankNext, 0, MPI_COMM_WORLD);
+                }
+            }
+            MPI_Bcast(&allWhite,1,MPI_CXX_BOOL,0,MPI_COMM_WORLD);
         }
         step++;
+    }
+    /*makes shore returnable of 0 is the smalest*/
+    if(rank==0){
+        for(int P=1;P<num_procs;P++){
+            MPI_Recv(retBuff,sizeof(double)+((nCities+1)*sizeof(int)),MPI_BYTE,P,3,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+            memcpy(&neiborRet,retBuff,sizeof(double));
+            if(neiborRet<returnable.btCost){
+                memcpy(returnable.bt.data(),retBuff+sizeof(double),(nCities+1)*sizeof(int));
+                returnable.btCost=neiborRet;
+            }
+        }
+    }
+    //children send to root
+    else{
+        memcpy(retBuff,&returnable.btCost,sizeof(double));
+        memcpy(retBuff+sizeof(double),returnable.bt.data(),(nCities+1)*sizeof(int));
+        MPI_Send(retBuff,sizeof(double)+((nCities+1)*sizeof(int)),MPI_BYTE,0,3,MPI_COMM_WORLD);
     }
     return returnable;
 }
@@ -281,19 +347,20 @@ int main(int argc, char *argv[]){
     t=tspbb(roadMatrix,totalCitys,maxVal,rank,num_procs);
 
     exec_time += omp_get_wtime();
-    if(rank==0)
+    if(rank==0){
         fprintf(stderr, "%.1fs\n", exec_time);
 
-    if(t.btCost>=maxVal){
-        std::cout << "NO SOLUTION\n" << std::endl;
-        return 0;
+        if(t.btCost>=maxVal){
+            std::cout << "NO SOLUTION\n" << std::endl;
+            return 0;
+        }
+        printf("%.1f\n",t.btCost);
+        for(int iiii : t.bt){
+            printf("%d ",iiii);
+        }
+        printf("\n");
     }
-    printf("%.1f\n",t.btCost);
-    for(int iiii : t.bt){
-        printf("%d ",iiii);
-    }
-    printf("\n");
-    
+    MPI_Barrier(MPI_COMM_WORLD);
     MPI_Finalize();
     return 0;
 }
