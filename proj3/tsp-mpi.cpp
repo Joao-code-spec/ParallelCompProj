@@ -213,7 +213,19 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
         }
         /*check neibors every 50 step*/
         if(step%50==0){
-            //TODO add termination
+            //Termination
+	    if (queue.empty()==true) {
+                MPI_Recv(&token, 1, MPI_INT, rankPrev, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                if (rank == 0 && token == num_procs) {
+                // if the token reaches the starting process and the computation is done
+                    allWhite=true;
+                }
+                else {
+                    // increment the token and pass it to the next process
+                    token++;
+                    MPI_Send(&token, 1, MPI_INT, rankNext, 0, MPI_COMM_WORLD);
+                }
+            }
             /*Send first*/
             if(rank%2==0){
                 MPI_Send((void *)&bestTourCost, 1, MPI_DOUBLE, rankNext, 1, MPI_COMM_WORLD);
