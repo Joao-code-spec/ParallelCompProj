@@ -351,14 +351,16 @@ int main(int argc, char *argv[]){
         fprintf(stderr, "%.1fs\n", exec_time);
 
         if(t.btCost>=maxVal){
-            std::cout << "NO SOLUTION\n" << std::endl;
-            return 0;
+            printf("NO SOLUTION\n");
+            //return 0;
         }
-        printf("%.1f\n",t.btCost);
-        for(int iiii : t.bt){
-            printf("%d ",iiii);
+        else{
+            printf("%.1f\n",t.btCost);
+            for(int iiii : t.bt){
+                printf("%d ",iiii);
+            }
+            printf("\n");
         }
-        printf("\n");
     }
     MPI_Barrier(MPI_COMM_WORLD);
     MPI_Finalize();
