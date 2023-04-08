@@ -119,13 +119,17 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
     double lowerBound;
     double newBound;
     int token,myColour;
-    MPI_Request request;
+    MPI_Request request, reqForQL[4];
+    MPI_Status statsForQL[4];
+    MPI_Request reqForReduce;
     MPI_Request reqForBroadc/*[num_procs-1]*/;
     qElement poppedE;
     qElement e;
     vector<int> tour /*= {0}*/;
 
     char retBuff[270];
+    char myBalBuff[280];
+    char lnBalBuff[280];
     bool allWhite=false;
     int jkjk=0;
     int step=1;
@@ -223,9 +227,51 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
         }
         /*check neibors every 50 step*/
         if(step%200==0){
+            int y=queue.size();
+            int x, z;
+            qElement eFromPrev={{1}, 2.3, 2.3, 2, 2};
+            MPI_Irecv(&x,1,MPI_INT,rankNext,5,MPI_COMM_WORLD,&reqForQL[2]);
+            MPI_Irecv(&z,1,MPI_INT,rankPrev,4,MPI_COMM_WORLD,&reqForQL[3]);
+
+            MPI_Isend(&y,1,MPI_INT,rankNext,4,MPI_COMM_WORLD,&reqForQL[0]);
+            MPI_Isend(&y,1,MPI_INT,rankPrev,5,MPI_COMM_WORLD,&reqForQL[1]);
             //broadCast version
-            MPI_Allreduce(&bestTourCost,&bestTCResiver,1,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD);
+            MPI_Iallreduce(&bestTourCost,&bestTCResiver,1,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD,&reqForReduce);
+            
+
+            
+            //Balance Sends one to next if nexts queue is shorter by 20
+            MPI_Waitall(4,reqForQL,statsForQL);
+            if(x<y+20){
+                poppedE=queue.pop();
+                memcpy(myBalBuff, &poppedE.currentCity, sizeof(int));
+                memcpy(myBalBuff+sizeof(int), &poppedE.lenght, sizeof(int));
+                memcpy(myBalBuff+2*sizeof(int), &poppedE.bound, sizeof(double));
+                memcpy(myBalBuff+2*sizeof(int)+sizeof(double), &poppedE.cost, sizeof(double));
+                memcpy(myBalBuff+2*sizeof(int)+2*sizeof(double), poppedE.tour.data(), poppedE.lenght*sizeof(int));
+                MPI_Send(myBalBuff,280,MPI_BYTE,rankNext,5,MPI_COMM_WORLD);
+                //TODO necesary?
+                //turn black if sending to earlier in the ring, only appens at the end of the ring
+                if(rankNext==0){
+                    myColour=1;
+                }
+            }
+
+            if(y<=z+20){
+                MPI_Recv(lnBalBuff,280,MPI_BYTE,rankPrev,5,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+                memcpy(&eFromPrev.currentCity, lnBalBuff, sizeof(int));
+                memcpy(&eFromPrev.lenght, lnBalBuff+sizeof(int), sizeof(int));
+                memcpy(&eFromPrev.bound, lnBalBuff+2*sizeof(int), sizeof(double));
+                memcpy(&eFromPrev.cost, lnBalBuff+2*sizeof(int)+sizeof(double), sizeof(double));
+                eFromPrev.tour.resize(eFromPrev.lenght);
+                memcpy(eFromPrev.tour.data(),lnBalBuff+2*sizeof(int)+2*sizeof(double),eFromPrev.lenght*sizeof(int));
+                queue.push(eFromPrev);
+            }
+
+            /*waits for reduce to finish and equalizes all bestTourCosts to the smallest*/
+            MPI_Wait(&reqForReduce,MPI_STATUS_IGNORE);
             bestTourCost=bestTCResiver;
+
             //version send to next
             /*Send first*/
             /*if(rank%2==0){
@@ -278,7 +324,10 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                     MPI_Iprobe(rankPrev,2,MPI_COMM_WORLD,&flag,MPI_STATUS_IGNORE);
                     if(flag){
                         MPI_Recv(&token,1,MPI_INT,rankPrev,2,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-                        /*TODO black when send to prev node and white when send token to next*/
+                        /*black when send to prev node and white when send token to next*/
+                        if(myColour==1){
+                            token=1;
+                        }
                         MPI_Isend(&token, 1, MPI_INT, rankNext, 2, MPI_COMM_WORLD,&request);
                         myColour=0;
                         MPI_Request_free(&request);
