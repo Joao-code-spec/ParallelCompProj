@@ -253,7 +253,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                 //TODO necesary?
                 //turn black if sending to earlier in the ring, only appens at the end of the ring
                 if(rankNext==0){
-                    myColour=1;
+                    //myColour=1;
                 }
             }
 
@@ -265,6 +265,11 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                 memcpy(&eFromPrev.cost, lnBalBuff+2*sizeof(int)+sizeof(double), sizeof(double));
                 eFromPrev.tour.resize(eFromPrev.lenght);
                 memcpy(eFromPrev.tour.data(),lnBalBuff+2*sizeof(int)+2*sizeof(double),eFromPrev.lenght*sizeof(int));
+                printf("rank %d, eFrom cCity=%d, lenght=%d, ",rank,eFromPrev.currentCity,eFromPrev.lenght);
+                for(int iiii : eFromPrev.tour){
+                    printf("%d ",iiii);
+                }
+                printf("\n");
                 queue.push(eFromPrev);
             }
 
