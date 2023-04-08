@@ -242,7 +242,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
             
             //Balance Sends one to next if nexts queue is shorter by 20
             MPI_Waitall(4,reqForQL,statsForQL);
-            if(x<y+20){
+            if(x<y+20&&y!=0){
                 poppedE=queue.pop();
                 memcpy(myBalBuff, &poppedE.currentCity, sizeof(int));
                 memcpy(myBalBuff+sizeof(int), &poppedE.lenght, sizeof(int));
@@ -257,7 +257,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                 }
             }
 
-            if(y<=z+20){
+            if(y<=z+20&&z!=0){
                 MPI_Recv(lnBalBuff,280,MPI_BYTE,rankPrev,5,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
                 memcpy(&eFromPrev.currentCity, lnBalBuff, sizeof(int));
                 memcpy(&eFromPrev.lenght, lnBalBuff+sizeof(int), sizeof(int));
