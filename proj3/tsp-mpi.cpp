@@ -225,6 +225,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
         if(step%50==0){
             //broadCast version
             MPI_Allreduce(&bestTourCost,&bestTCResiver,1,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD);
+            bestTourCost=bestTCResiver;
             //version send to next
             /*Send first*/
             /*if(rank%2==0){
