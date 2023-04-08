@@ -222,10 +222,10 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
             }
         }
         /*check neibors every 50 step*/
-        if(step%50==0){
+        if(step%200==0){
             //broadCast version
-            /*MPI_Allreduce(&bestTourCost,&bestTCResiver,1,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD);
-            bestTourCost=bestTCResiver;*/
+            MPI_Allreduce(&bestTourCost,&bestTCResiver,1,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD);
+            bestTourCost=bestTCResiver;
             //version send to next
             /*Send first*/
             /*if(rank%2==0){
