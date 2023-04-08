@@ -112,7 +112,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
     /*used so that we dont have to reshape returnable vector*/
     std::vector<int> rTourFiller (nCities+1,0);
     PriorityQueue<qElement,cmp_op>  queue;
-    double d, neiborRet;
+    double d, neiborRet,bestTCResiver;
     bool contains[nCities];
     bool sentFirst;
     int help, rankNext, rankPrev;
@@ -185,7 +185,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                 //poppedE.tour.push_front(poppedE.currentCity);
                 //returnable={returnable.bt, bestTourCost};
                 queue.clear();
-                return returnable;
+                //return returnable;
             }
             if(poppedE.lenght==nCities){
                 //re-used lowerBound because it is a double this has nothing to do with lowerbound
@@ -224,28 +224,24 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
         /*check neibors every 50 step*/
         if(step%50==0){
             //broadCast version
-            /*if(rank==0){
-                for(int P=1;P<num_procs;P++){
-                    MPI_
-                }
-            }*/
+            MPI_Allreduce(&bestTourCost,&bestTCResiver,1,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD);
             //version send to next
             /*Send first*/
-            if(rank%2==0){
+            /*if(rank%2==0){
                 MPI_Send((void *)&bestTourCost, 1, MPI_DOUBLE, rankNext, 1, MPI_COMM_WORLD);
                 MPI_Recv((void *)&neiborRet, 1, MPI_DOUBLE, rankPrev, 1, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
                 if(neiborRet<bestTourCost){
                     bestTourCost=neiborRet;
                 }
-            }
+            }*/
             /*Recive first*/
-            else{
+            /*else{
                 MPI_Recv((void *)&neiborRet, 1, MPI_DOUBLE, rankPrev, 1, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
                 MPI_Send((void *)&bestTourCost, 1, MPI_DOUBLE, rankNext, 1, MPI_COMM_WORLD);
                 if(neiborRet<bestTourCost){
                     bestTourCost=neiborRet;
                 }
-            }
+            }*/
             //Termination
 	        if (queue.empty()==true) {
                 //MPI_Recv(&token, 1, MPI_INT, rankPrev, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
