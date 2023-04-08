@@ -226,7 +226,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
             }
         }
         /*check neibors every 50 step*/
-        if(step%200==0){
+        if(step%50==0){
             int y=queue.size();
             int x, z;
             qElement eFromPrev={{1}, 2.3, 2.3, 2, 2};
