@@ -327,7 +327,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                     
                 }
                 else {
-                    // increment the token and pass it to the next process
+                    // non root resive token and send to next
                     MPI_Iprobe(rankPrev,2,MPI_COMM_WORLD,&flag,MPI_STATUS_IGNORE);
                     if(flag){
                         MPI_Recv(&token,1,MPI_INT,rankPrev,2,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
