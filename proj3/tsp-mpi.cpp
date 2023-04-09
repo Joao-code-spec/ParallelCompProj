@@ -226,10 +226,10 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
             }
         }
         /*check neibors every 50 step*/
-        if(step%50==0){
+        if(step%200==0){
             int y=queue.size();
             int x, z;
-            qElement eFromPrev={{1,2,3,4,5,6}, 2.3, 2.3, 2, 2};
+            qElement eFromPrev={{1}, 2.3, 2.3, 2, 2};
             MPI_Irecv(&x,1,MPI_INT,rankNext,5,MPI_COMM_WORLD,&reqForQL[2]);
             MPI_Irecv(&z,1,MPI_INT,rankPrev,4,MPI_COMM_WORLD,&reqForQL[3]);
 
@@ -242,7 +242,8 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
             
             //Balance Sends one to next if nexts queue is shorter by 20
             MPI_Waitall(4,reqForQL,statsForQL);
-            if(x<y+20&&y!=0){
+            //if(x<y+20&&y!=0){
+            if(x+20<y){
                 poppedE=queue.pop();
                 memcpy(myBalBuff, &poppedE.currentCity, sizeof(int));
                 memcpy(myBalBuff+sizeof(int), &poppedE.lenght, sizeof(int));
@@ -257,7 +258,8 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                 }
             }
 
-            if(y<=z+20&&z!=0){
+            //if(y<=z+20&&z!=0){
+            if(y+20<z){
                 MPI_Recv(lnBalBuff,280,MPI_BYTE,rankPrev,5,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
                 memcpy(&eFromPrev.currentCity, lnBalBuff, sizeof(int));
                 memcpy(&eFromPrev.lenght, lnBalBuff+sizeof(int), sizeof(int));
@@ -265,11 +267,11 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                 memcpy(&eFromPrev.cost, lnBalBuff+2*sizeof(int)+sizeof(double), sizeof(double));
                 eFromPrev.tour.resize(eFromPrev.lenght);
                 memcpy(eFromPrev.tour.data(),lnBalBuff+2*sizeof(int)+2*sizeof(double),eFromPrev.lenght*sizeof(int));
-                printf("rank %d, eFrom cCity=%d, lenght=%d, ",rank,eFromPrev.currentCity,eFromPrev.lenght);
+                /*printf("rank %d, eFrom cCity=%d, lenght=%d, ",rank,eFromPrev.currentCity,eFromPrev.lenght);
                 for(int iiii : eFromPrev.tour){
                     printf("%d ",iiii);
                 }
-                printf("\n");
+                printf("\n");*/
                 queue.push(eFromPrev);
             }
 
