@@ -202,13 +202,16 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                     //re-used lowerBound because it is a double this has nothing to do with lowerbound
                     // if Cost + Distances(Node, 0) < BestT ourCost then
                     lowerBound = poppedE.cost + distances[poppedE.currentCity][0];
-                    if(lowerBound<bestTourCost){
-                        //tour=poppedE.tour;
-                        //tour.push_back(0);
-                        returnable.bt=poppedE.tour;
-                        returnable.bt.push_back(0);
-                        returnable.btCost=lowerBound;
-                        bestTourCost=lowerBound;
+                    #pragma omp critical
+                    {
+                        if(lowerBound<bestTourCost){
+                            //tour=poppedE.tour;
+                            //tour.push_back(0);
+                            returnable.bt=poppedE.tour;
+                            returnable.bt.push_back(0);
+                            returnable.btCost=lowerBound;
+                            bestTourCost=lowerBound;
+                        }
                     }
                 }
                 else{
@@ -231,32 +234,6 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                         i++;
                     }
                 }
-            }
-            if(step%100 == 0){
-                /*waits to merge*/
-                #pragma omp barrier
-                #pragma omp single
-                {
-                    /*all empty ?*/
-                    bool allEmpty=true;
-                    for(PriorityQueue<qElement,cmp_op>& q : queues){
-                        if(!q.empty()){
-                            allEmpty=false;
-                        }
-                    }
-                    if(allEmpty){
-                        qConfirmedEmpty=true;
-                    }
-                    /*merge*/
-                    for(int zc=0;zc<nOfThreads;zc++){
-                        for(int za=1;za<nOfThreads;za++){
-                            if(queues[(zc+za)%nOfThreads].size()+1<queues[zc].size()){
-                                queues[(zc+za)%nOfThreads].push(queues[zc].pop());
-                            }
-                        }
-                    }
-                }
-                #pragma omp barrier
             }
             /*merge threads and processes step*/
             if(step%100==0){
