@@ -290,11 +290,6 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                         queues[0].push(eFromPrev);
                     }
 
-                    /*waits for reduce to finish and equalizes all bestTourCosts to the smallest*/
-                    MPI_Wait(&reqForReduce,MPI_STATUS_IGNORE);
-                    bestTourCost=bestTCResiver;
-
-                    
                     /*thread merger*/
                     /*all empty ?*/
                     bool allEmpty=true;
@@ -311,6 +306,13 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                             }
                         }
                     }
+
+                    /*waits for reduce to finish and equalizes all bestTourCosts to the smallest*/
+                    MPI_Wait(&reqForReduce,MPI_STATUS_IGNORE);
+                    bestTourCost=bestTCResiver;
+
+                    
+
 
 
                     //processes Termination
