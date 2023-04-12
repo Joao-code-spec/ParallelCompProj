@@ -251,9 +251,25 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                     MPI_Isend(&y,1,MPI_INT,rankNext,4,MPI_COMM_WORLD,&reqForQL[0]);
                     MPI_Isend(&y,1,MPI_INT,rankPrev,5,MPI_COMM_WORLD,&reqForQL[1]);
                     //broadCast version
-                    MPI_Iallreduce(&bestTourCost,&bestTCResiver,1,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD,&reqForReduce);
+                    //MPI_Iallreduce(&bestTourCost,&bestTCResiver,1,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD,&reqForReduce);
                     
-
+                    //version send to next
+                    /*Send first*/
+                    if(rank%2==0){
+                        MPI_Send((void *)&bestTourCost, 1, MPI_DOUBLE, rankNext, 1, MPI_COMM_WORLD);
+                        MPI_Recv((void *)&neiborRet, 1, MPI_DOUBLE, rankPrev, 1, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+                        if(neiborRet<bestTourCost){
+                            bestTourCost=neiborRet;
+                        }
+                    }
+                    /*Recive first*/
+                    else{
+                        MPI_Recv((void *)&neiborRet, 1, MPI_DOUBLE, rankPrev, 1, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+                        MPI_Send((void *)&bestTourCost, 1, MPI_DOUBLE, rankNext, 1, MPI_COMM_WORLD);
+                        if(neiborRet<bestTourCost){
+                            bestTourCost=neiborRet;
+                        }
+                    }
                     
                     //Balance Sends one to next if nexts queue is shorter by 20
                     MPI_Waitall(4,reqForQL,statsForQL);
@@ -308,8 +324,8 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                     }
 
                     /*waits for reduce to finish and equalizes all bestTourCosts to the smallest*/
-                    MPI_Wait(&reqForReduce,MPI_STATUS_IGNORE);
-                    bestTourCost=bestTCResiver;
+                    //MPI_Wait(&reqForReduce,MPI_STATUS_IGNORE);
+                    //bestTourCost=bestTCResiver;
 
                     
 
