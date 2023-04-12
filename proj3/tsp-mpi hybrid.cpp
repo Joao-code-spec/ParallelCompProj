@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <omp.h>
 #include <mpi.h>
+#include <cstring>
+
 
 using namespace std;
 int maxVal;
@@ -75,7 +77,6 @@ double updateBound(double cost, int currentCity,int toCity,vector<double> &min1,
         } else if(dist < min2f) {    
             min2f = dist;
         }
-
     }
     //calculates mins for toCity
     for(int akf = 0; akf < (int) distanceTo.size();akf++){
@@ -86,7 +87,6 @@ double updateBound(double cost, int currentCity,int toCity,vector<double> &min1,
         } else if(dist < min2t) {    
             min2t = dist;
         }
-
     }*/
     if(dct>=min2[currentCity]){
         cf=min2[currentCity];
@@ -241,6 +241,23 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                 #pragma omp barrier
                 #pragma omp single
                 {
+		    /*thread merger*/
+                    /*all empty ?*/
+                    bool allEmpty=true;
+                    for(PriorityQueue<qElement,cmp_op>& q : queues){
+                        if(!q.empty()){
+                            allEmpty=false;
+                        }
+                    }
+                    //qConfirmedEmpty=allEmpty;
+                    for(int zc=0;zc<nOfThreads;zc++){
+                        for(int za=1;za<nOfThreads;za++){
+                            if(queues[(zc+za)%nOfThreads].size()+1<queues[zc].size()){
+                                queues[(zc+za)%nOfThreads].push(queues[zc].pop());
+                            }
+                        }
+                    }
+                    if(step%2500==0){
                     //TODO put process merge and process termination in if(step%200==0) or put thread merger somewhere in the midle like before MPI_Wait(&reqForReduce,MPI_STATUS_IGNORE);
                     int y=queues[0].size();
                     int x, z;
@@ -251,25 +268,9 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                     MPI_Isend(&y,1,MPI_INT,rankNext,4,MPI_COMM_WORLD,&reqForQL[0]);
                     MPI_Isend(&y,1,MPI_INT,rankPrev,5,MPI_COMM_WORLD,&reqForQL[1]);
                     //broadCast version
-                    //MPI_Iallreduce(&bestTourCost,&bestTCResiver,1,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD,&reqForReduce);
+                    MPI_Iallreduce(&bestTourCost,&bestTCResiver,1,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD,&reqForReduce);
                     
-                    //version send to next
-                    /*Send first*/
-                    if(rank%2==0){
-                        MPI_Send((void *)&bestTourCost, 1, MPI_DOUBLE, rankNext, 1, MPI_COMM_WORLD);
-                        MPI_Recv((void *)&neiborRet, 1, MPI_DOUBLE, rankPrev, 1, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-                        if(neiborRet<bestTourCost){
-                            bestTourCost=neiborRet;
-                        }
-                    }
-                    /*Recive first*/
-                    else{
-                        MPI_Recv((void *)&neiborRet, 1, MPI_DOUBLE, rankPrev, 1, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-                        MPI_Send((void *)&bestTourCost, 1, MPI_DOUBLE, rankNext, 1, MPI_COMM_WORLD);
-                        if(neiborRet<bestTourCost){
-                            bestTourCost=neiborRet;
-                        }
-                    }
+
                     
                     //Balance Sends one to next if nexts queue is shorter by 20
                     MPI_Waitall(4,reqForQL,statsForQL);
@@ -306,27 +307,14 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                         queues[0].push(eFromPrev);
                     }
 
-                    /*thread merger*/
-                    /*all empty ?*/
-                    bool allEmpty=true;
-                    for(PriorityQueue<qElement,cmp_op>& q : queues){
-                        if(!q.empty()){
-                            allEmpty=false;
-                        }
-                    }
-                    //qConfirmedEmpty=allEmpty;
-                    for(int zc=0;zc<nOfThreads;zc++){
-                        for(int za=1;za<nOfThreads;za++){
-                            if(queues[(zc+za)%nOfThreads].size()+1<queues[zc].size()){
-                                queues[(zc+za)%nOfThreads].push(queues[zc].pop());
-                            }
-                        }
-                    }
+                    
+                    
+                    
 
-                    /*waits for reduce to finish and equalizes all bestTourCosts to the smallest*/
-                    //MPI_Wait(&reqForReduce,MPI_STATUS_IGNORE);
-                    //bestTourCost=bestTCResiver;
-
+			    /*waits for reduce to finish and equalizes all bestTourCosts to the smallest*/
+			    MPI_Wait(&reqForReduce,MPI_STATUS_IGNORE);
+			    bestTourCost=bestTCResiver;
+                    }
                     
 
 
@@ -351,7 +339,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                                         allWhite=true;
                                     }
                                     else{
-                                        /*sets token to 0 white and restarst cicle*/
+                                        /*sets token to 0 white and restarts cicle*/
                                         MPI_Isend(&token, 1, MPI_INT, rankNext, 2, MPI_COMM_WORLD,&request);
                                         token=0;
                                         MPI_Request_free(&request);
@@ -362,7 +350,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                             
                         }
                         else {
-                            // non root resive token and send to next
+                            // non root recieve token and send to next
                             MPI_Iprobe(rankPrev,2,MPI_COMM_WORLD,&flag,MPI_STATUS_IGNORE);
                             if(flag){
                                 MPI_Recv(&token,1,MPI_INT,rankPrev,2,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
@@ -378,6 +366,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                             //MPI_Send(&token, 1, MPI_INT, rankNext, 0, MPI_COMM_WORLD);
                         }
                     }
+                    //if(step%200==0)
                     MPI_Bcast(&allWhite,1,MPI_CXX_BOOL,0,MPI_COMM_WORLD);
                 }
                 #pragma omp barrier
@@ -386,7 +375,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
             step++;
         }
     }
-    /*makes shore returnable of 0 is the smalest*/
+    /*makes sure returnable of 0 is the smalest*/
     if(rank==0){
         for(int P=1;P<num_procs;P++){
             MPI_Recv(retBuff,sizeof(double)+((nCities+1)*sizeof(int)),MPI_BYTE,P,3,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
