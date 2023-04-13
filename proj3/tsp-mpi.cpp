@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <omp.h>
 #include <mpi.h>
-
+#include <cstring>
 using namespace std;
 int maxVal;
 typedef struct
@@ -75,7 +75,6 @@ double updateBound(double cost, int currentCity,int toCity,vector<double> &min1,
         } else if(dist < min2f) {    
             min2f = dist;
         }
-
     }
     //calculates mins for toCity
     for(int akf = 0; akf < (int) distanceTo.size();akf++){
@@ -86,7 +85,6 @@ double updateBound(double cost, int currentCity,int toCity,vector<double> &min1,
         } else if(dist < min2t) {    
             min2t = dist;
         }
-
     }*/
     if(dct>=min2[currentCity]){
         cf=min2[currentCity];
@@ -225,8 +223,8 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                 }
             }
         }
-        /*check neibors every 50 step*/
-        if(step%200==0){
+        /*check neighbours every 2500 steps*/
+        if(step%2500==0){
             int y=queue.size();
             int x, z;
             qElement eFromPrev={{1}, 2.3, 2.3, 2, 2};
@@ -240,10 +238,10 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
             
 
             
-            //Balance Sends one to next if nexts queue is shorter by 20
+            //Balance Sends one to next if next queue is shorter 	
             MPI_Waitall(4,reqForQL,statsForQL);
             //if(x<y+20&&y!=0){
-            if(x+20<y){
+            if(x<y){
                 poppedE=queue.pop();
                 memcpy(myBalBuff, &poppedE.currentCity, sizeof(int));
                 memcpy(myBalBuff+sizeof(int), &poppedE.lenght, sizeof(int));
@@ -259,7 +257,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
             }
 
             //if(y<=z+20&&z!=0){
-            if(y+20<z){
+            if(y<z){
                 MPI_Recv(lnBalBuff,280,MPI_BYTE,rankPrev,5,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
                 memcpy(&eFromPrev.currentCity, lnBalBuff, sizeof(int));
                 memcpy(&eFromPrev.lenght, lnBalBuff+sizeof(int), sizeof(int));
@@ -288,7 +286,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                     bestTourCost=neiborRet;
                 }
             }*/
-            /*Recive first*/
+            /*Recieve first*/
             /*else{
                 MPI_Recv((void *)&neiborRet, 1, MPI_DOUBLE, rankPrev, 1, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
                 MPI_Send((void *)&bestTourCost, 1, MPI_DOUBLE, rankNext, 1, MPI_COMM_WORLD);
@@ -316,7 +314,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                                 allWhite=true;
                             }
                             else{
-                                /*sets token to 0 white and restarst cicle*/
+                                /*sets token to 0 white and restarts cicle*/
                                 MPI_Isend(&token, 1, MPI_INT, rankNext, 2, MPI_COMM_WORLD,&request);
                                 token=0;
                                 MPI_Request_free(&request);
@@ -347,7 +345,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
         }
         step++;
     }
-    /*makes shore returnable of 0 is the smalest*/
+    /*makes sure returnable of 0 is the smalest*/
     if(rank==0){
         for(int P=1;P<num_procs;P++){
             MPI_Recv(retBuff,sizeof(double)+((nCities+1)*sizeof(int)),MPI_BYTE,P,3,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
