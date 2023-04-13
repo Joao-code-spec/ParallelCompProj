@@ -243,15 +243,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                 #pragma omp barrier
                 #pragma omp single
                 {
-		    /*thread merger*/
-                    
-                    for(int zc=0;zc<nOfThreads;zc++){
-                        for(int za=1;za<nOfThreads;za++){
-                            if(queues[(zc+za)%nOfThreads].size()+1<queues[zc].size()){
-                                queues[(zc+za)%nOfThreads].push(queues[zc].pop());
-                            }
-                        }
-                    }
+		    
                     if(step%2500==0){
                     //TODO put process merge and process termination in if(step%200==0) or put thread merger somewhere in the midle like before MPI_Wait(&reqForReduce,MPI_STATUS_IGNORE);
                     int y=queues[0].size();
@@ -310,7 +302,15 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
 			    MPI_Wait(&reqForReduce,MPI_STATUS_IGNORE);
 			    bestTourCost=bestTCResiver;
                     }
+                /*thread merger*/
                     
+                    for(int zc=0;zc<nOfThreads;zc++){
+                        for(int za=1;za<nOfThreads;za++){
+                            if(queues[(zc+za)%nOfThreads].size()+1<queues[zc].size()){
+                                queues[(zc+za)%nOfThreads].push(queues[zc].pop());
+                            }
+                        }
+                    }
 
                     /*all empty ?*/
                     bool allEmpty=true;
@@ -439,8 +439,12 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
     }
     return returnable;
 }
-int main(int argc, char *argv[]){
-    MPI_Init(&argc, &argv);
+int main(int argc, char *argv[]){   
+    int provided;
+    MPI_Init_thread(&argc, &argv, MPI_THREAD_SERIALIZED, &provided);
+    if (provided != MPI_THREAD_SERIALIZED) {
+        fprintf(stderr, "Warning MPI did not provide MPI_THREAD_FUNNELED\n");
+    }
 
     int rank, num_procs;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
