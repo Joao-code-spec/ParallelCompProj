@@ -113,7 +113,8 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
     std::vector<int> rTourFiller (nCities+1,0);
     double d, neiborRet,bestTCResiver;
     bool contains[nCities];
-    bool sentFirst;
+    bool sentFirst=false;
+    bool sending=false;
     int rankNext, rankPrev;
     double lowerBound;
     double newBound;
@@ -121,6 +122,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
     MPI_Request request, reqForQL[4];
     MPI_Status statsForQL[4];
     MPI_Request reqForReduce;
+    MPI_Request reqForRing;
     MPI_Request reqForBroadc/*[num_procs-1]*/;
     qElement poppedE;
     qElement e;
@@ -326,14 +328,38 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                         if (rank == 0) {
                             if(!sentFirst){
                                 /*send first token*/
-                                MPI_Isend(&token, 1, MPI_INT, rankNext, 2, MPI_COMM_WORLD,&request);
+                                MPI_Isend(&token, 1, MPI_INT, rankNext, 2, MPI_COMM_WORLD,&reqForRing);
                                 sentFirst=true;
-                                MPI_Request_free(&request);
+                                sending=true;
+                                //MPI_Request_free(&request);
                             }
-                            else{
-                                MPI_Iprobe(rankPrev,2,MPI_COMM_WORLD,&flag,MPI_STATUS_IGNORE);
+                            else if(sending){
+                                //MPI_Iprobe(rankPrev,2,MPI_COMM_WORLD,&flag,MPI_STATUS_IGNORE);
+                                MPI_Test(&reqForRing,&flag,MPI_STATUS_IGNORE);
                                 if(flag){
-                                    MPI_Recv(&token,1,MPI_INT,rankPrev,2,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+                                    MPI_Irecv(&token,1,MPI_INT,rankPrev,2,MPI_COMM_WORLD,&reqForRing);
+                                    sending=false;
+                                }
+                                /*MPI_Irecv(&token,1,MPI_INT,rankPrev,2,MPI_COMM_WORLD,&reqForRing);
+                                //if(flag){
+                                if(MPI_Test(&reqForRing,&flag,MPI_STATUS_IGNORE)){
+                                    //MPI_Recv(&token,1,MPI_INT,rankPrev,2,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+                                    if(token==0){
+                                        /*all white terminate process
+                                        allWhite=true;
+                                    }
+                                    else{
+                                        /*sets token to 0 white and restarts cicle
+                                        token=0;
+                                        MPI_Isend(&token, 1, MPI_INT, rankNext, 2, MPI_COMM_WORLD,&request);
+                                        //MPI_Request_free(&request);
+                                    }
+                                }*/
+
+                            }
+                            else if(!sending){
+                                MPI_Test(&reqForRing,&flag,MPI_STATUS_IGNORE);
+                                if(flag){
                                     if(token==0){
                                         /*all white terminate process*/
                                         allWhite=true;
@@ -341,26 +367,45 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                                     else{
                                         /*sets token to 0 white and restarts cicle*/
                                         token=0;
-                                        MPI_Isend(&token, 1, MPI_INT, rankNext, 2, MPI_COMM_WORLD,&request);
-                                        MPI_Request_free(&request);
+                                        MPI_Isend(&token, 1, MPI_INT, rankNext, 2, MPI_COMM_WORLD,&reqForRing);
+                                        //MPI_Request_free(&request);
                                     }
-                                }
+                                    sending=true;
 
+                                }
                             }
                             
                         }
                         else {
                             // non root recieve token and send to next
-                            MPI_Iprobe(rankPrev,2,MPI_COMM_WORLD,&flag,MPI_STATUS_IGNORE);
-                            if(flag){
-                                MPI_Recv(&token,1,MPI_INT,rankPrev,2,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-                                /*black when send to prev node and white when send token to next*/
-                                if(myColour==1){
-                                    token=1;
+                            //MPI_Iprobe(rankPrev,2,MPI_COMM_WORLD,&flag,MPI_STATUS_IGNORE);
+                            if(!sentFirst){
+                                MPI_Irecv(&token,1,MPI_INT,rankPrev,2,MPI_COMM_WORLD,&reqForRing);
+                                sentFirst=true;
+                                //sending=false;
+                            }
+                            else if(!sending){
+                                MPI_Test(&reqForRing,&flag,MPI_STATUS_IGNORE);
+                                if(flag){
+                                    /*finished reciving now send*/
+                                    //MPI_Recv(&token,1,MPI_INT,rankPrev,2,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+                                    /*black when send to prev node and white when send token to next*/
+                                    if(myColour==1){
+                                        token=1;
+                                    }
+                                    myColour=0;
+                                    MPI_Isend(&token, 1, MPI_INT, rankNext, 2, MPI_COMM_WORLD,&request);
+                                    //MPI_Request_free(&request);
+                                    sending=true;
                                 }
-                                MPI_Isend(&token, 1, MPI_INT, rankNext, 2, MPI_COMM_WORLD,&request);
-                                myColour=0;
-                                MPI_Request_free(&request);
+                            }
+                            else if(sending){
+                                MPI_Test(&reqForRing,&flag,MPI_STATUS_IGNORE);
+                                if(flag){
+                                    /*finished sending now recive*/
+                                    MPI_Irecv(&token,1,MPI_INT,rankPrev,2,MPI_COMM_WORLD,&reqForRing);
+                                    sending=false;
+                                }
                             }
                             //token++;
                             //MPI_Send(&token, 1, MPI_INT, rankNext, 0, MPI_COMM_WORLD);
