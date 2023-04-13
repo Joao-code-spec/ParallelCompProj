@@ -242,14 +242,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                 #pragma omp single
                 {
 		    /*thread merger*/
-                    /*all empty ?*/
-                    bool allEmpty=true;
-                    for(PriorityQueue<qElement,cmp_op>& q : queues){
-                        if(!q.empty()){
-                            allEmpty=false;
-                        }
-                    }
-                    //qConfirmedEmpty=allEmpty;
+                    
                     for(int zc=0;zc<nOfThreads;zc++){
                         for(int za=1;za<nOfThreads;za++){
                             if(queues[(zc+za)%nOfThreads].size()+1<queues[zc].size()){
@@ -317,7 +310,14 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                     }
                     
 
-
+                    /*all empty ?*/
+                    bool allEmpty=true;
+                    for(PriorityQueue<qElement,cmp_op>& q : queues){
+                        if(!q.empty()){
+                            allEmpty=false;
+                        }
+                    }
+                    //qConfirmedEmpty=allEmpty;
 
                     //processes Termination
                     if (allEmpty) {
@@ -340,8 +340,8 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                                     }
                                     else{
                                         /*sets token to 0 white and restarts cicle*/
-                                        MPI_Isend(&token, 1, MPI_INT, rankNext, 2, MPI_COMM_WORLD,&request);
                                         token=0;
+                                        MPI_Isend(&token, 1, MPI_INT, rankNext, 2, MPI_COMM_WORLD,&request);
                                         MPI_Request_free(&request);
                                     }
                                 }
