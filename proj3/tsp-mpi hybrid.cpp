@@ -213,6 +213,7 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
                             returnable.bt.push_back(0);
                             returnable.btCost=lowerBound;
                             bestTourCost=lowerBound;
+                            printf("new bestCost=%.1f\n",bestTourCost);
                         }
                     }
                 }
@@ -241,73 +242,79 @@ bestTaC tspbb(std::vector<std::vector<double>> distances, int nCities, double be
             if(step%100==0){
                 /*only one thread merges per process*/
                 #pragma omp barrier
-                #pragma omp single
+                #pragma omp master
                 {
-		    
+                    MPI_Barrier(MPI_COMM_WORLD);
                     if(step%2500==0){
-                    //TODO put process merge and process termination in if(step%200==0) or put thread merger somewhere in the midle like before MPI_Wait(&reqForReduce,MPI_STATUS_IGNORE);
-                    int y=queues[0].size();
-                    int x, z;
-                    qElement eFromPrev={{1}, 2.3, 2.3, 2, 2};
-                    MPI_Irecv(&x,1,MPI_INT,rankNext,5,MPI_COMM_WORLD,&reqForQL[2]);
-                    MPI_Irecv(&z,1,MPI_INT,rankPrev,4,MPI_COMM_WORLD,&reqForQL[3]);
+                        //TODO put process merge and process termination in if(step%200==0) or put thread merger somewhere in the midle like before MPI_Wait(&reqForReduce,MPI_STATUS_IGNORE);
+                        int y=queues[0].size();
+                        int x, z;
+                        qElement eFromPrev={{1}, 2.3, 2.3, 2, 2};
+                        MPI_Irecv(&x,1,MPI_INT,rankNext,5,MPI_COMM_WORLD,&reqForQL[2]);
+                        MPI_Irecv(&z,1,MPI_INT,rankPrev,4,MPI_COMM_WORLD,&reqForQL[3]);
 
-                    MPI_Isend(&y,1,MPI_INT,rankNext,4,MPI_COMM_WORLD,&reqForQL[0]);
-                    MPI_Isend(&y,1,MPI_INT,rankPrev,5,MPI_COMM_WORLD,&reqForQL[1]);
-                    //broadCast version
-                    MPI_Iallreduce(&bestTourCost,&bestTCResiver,1,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD,&reqForReduce);
-                    
+                        MPI_Isend(&y,1,MPI_INT,rankNext,4,MPI_COMM_WORLD,&reqForQL[0]);
+                        MPI_Isend(&y,1,MPI_INT,rankPrev,5,MPI_COMM_WORLD,&reqForQL[1]);
+                        //broadCast version
+                        MPI_Iallreduce(&bestTourCost,&bestTCResiver,1,MPI_DOUBLE,MPI_MIN,MPI_COMM_WORLD,&reqForReduce);
+                        
 
-                    
-                    //Balance Sends one to next if nexts queue is shorter by 20
-                    MPI_Waitall(4,reqForQL,statsForQL);
-                    //if(x<y+20&&y!=0){
-                    if(x+20<y){
-                        poppedE=queues[0].pop();
-                        memcpy(myBalBuff, &poppedE.currentCity, sizeof(int));
-                        memcpy(myBalBuff+sizeof(int), &poppedE.lenght, sizeof(int));
-                        memcpy(myBalBuff+2*sizeof(int), &poppedE.bound, sizeof(double));
-                        memcpy(myBalBuff+2*sizeof(int)+sizeof(double), &poppedE.cost, sizeof(double));
-                        memcpy(myBalBuff+2*sizeof(int)+2*sizeof(double), poppedE.tour.data(), poppedE.lenght*sizeof(int));
-                        MPI_Send(myBalBuff,280,MPI_BYTE,rankNext,5,MPI_COMM_WORLD);
-                        //TODO necesary?
-                        //turn black if sending to earlier in the ring, only appens at the end of the ring
-                        if(rankNext==0){
-                            myColour=1;
+                        
+                        //Balance Sends one to next if nexts queue is shorter by 20
+                        MPI_Waitall(4,reqForQL,statsForQL);
+                        //if(x<y+20&&y!=0){
+                        if(x+20<y){
+                            poppedE=queues[0].pop();
+                            memcpy(myBalBuff, &poppedE.currentCity, sizeof(int));
+                            memcpy(myBalBuff+sizeof(int), &poppedE.lenght, sizeof(int));
+                            memcpy(myBalBuff+2*sizeof(int), &poppedE.bound, sizeof(double));
+                            memcpy(myBalBuff+2*sizeof(int)+sizeof(double), &poppedE.cost, sizeof(double));
+                            memcpy(myBalBuff+2*sizeof(int)+2*sizeof(double), poppedE.tour.data(), poppedE.lenght*sizeof(int));
+                            MPI_Send(myBalBuff,280,MPI_BYTE,rankNext,5,MPI_COMM_WORLD);
+                            //TODO necesary?
+                            //turn black if sending to earlier in the ring, only appens at the end of the ring
+                            if(rankNext==0){
+                                myColour=1;
+                            }
                         }
-                    }
 
-                    //if(y<=z+20&&z!=0){
-                    if(y+20<z){
-                        MPI_Recv(lnBalBuff,280,MPI_BYTE,rankPrev,5,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-                        memcpy(&eFromPrev.currentCity, lnBalBuff, sizeof(int));
-                        memcpy(&eFromPrev.lenght, lnBalBuff+sizeof(int), sizeof(int));
-                        memcpy(&eFromPrev.bound, lnBalBuff+2*sizeof(int), sizeof(double));
-                        memcpy(&eFromPrev.cost, lnBalBuff+2*sizeof(int)+sizeof(double), sizeof(double));
-                        eFromPrev.tour.resize(eFromPrev.lenght);
-                        memcpy(eFromPrev.tour.data(),lnBalBuff+2*sizeof(int)+2*sizeof(double),eFromPrev.lenght*sizeof(int));
-                        /*printf("rank %d, eFrom cCity=%d, lenght=%d, ",rank,eFromPrev.currentCity,eFromPrev.lenght);
-                        for(int iiii : eFromPrev.tour){
-                            printf("%d ",iiii);
+                        //if(y<=z+20&&z!=0){
+                        if(y+20<z){
+                            MPI_Recv(lnBalBuff,280,MPI_BYTE,rankPrev,5,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+                            memcpy(&eFromPrev.currentCity, lnBalBuff, sizeof(int));
+                            memcpy(&eFromPrev.lenght, lnBalBuff+sizeof(int), sizeof(int));
+                            memcpy(&eFromPrev.bound, lnBalBuff+2*sizeof(int), sizeof(double));
+                            memcpy(&eFromPrev.cost, lnBalBuff+2*sizeof(int)+sizeof(double), sizeof(double));
+                            eFromPrev.tour.resize(eFromPrev.lenght);
+                            memcpy(eFromPrev.tour.data(),lnBalBuff+2*sizeof(int)+2*sizeof(double),eFromPrev.lenght*sizeof(int));
+                            /*printf("rank %d, eFrom cCity=%d, lenght=%d, ",rank,eFromPrev.currentCity,eFromPrev.lenght);
+                            for(int iiii : eFromPrev.tour){
+                                printf("%d ",iiii);
+                            }
+                            printf("\n");*/
+                            queues[0].push(eFromPrev);
                         }
-                        printf("\n");*/
-                        queues[0].push(eFromPrev);
-                    }
 
-                    
-                    
-                    
+                        
+                        
+                        
 
-			    /*waits for reduce to finish and equalizes all bestTourCosts to the smallest*/
-			    MPI_Wait(&reqForReduce,MPI_STATUS_IGNORE);
-			    bestTourCost=bestTCResiver;
+                        /*waits for reduce to finish and equalizes all bestTourCosts to the smallest*/
+                        MPI_Wait(&reqForReduce,MPI_STATUS_IGNORE);
+                        bestTourCost=bestTCResiver;
                     }
-                /*thread merger*/
+                    /*thread merger*/
                     
                     for(int zc=0;zc<nOfThreads;zc++){
                         for(int za=1;za<nOfThreads;za++){
                             if(queues[(zc+za)%nOfThreads].size()+1<queues[zc].size()){
-                                queues[(zc+za)%nOfThreads].push(queues[zc].pop());
+                                qElement po=queues[zc].pop();
+                                printf("%d poped to push into %d, lenght= %d, cost=%.1f\n", zc,(zc+za)%nOfThreads,po.lenght,po.cost);
+                                for(int iiii : po.tour){
+                                    printf("%d ",iiii);
+                                }
+                                printf("\n");
+                                queues[(zc+za)%nOfThreads].push(po);
                             }
                         }
                     }
